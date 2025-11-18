@@ -6,10 +6,10 @@
 ## Needs to Have
 - at least 3 levels of progressing difficulty 
 - at least 5 unique contraptions
-- sound effects
 
 
 ## Nice to Have
 - level creator
-- visual effects
 - start screen / level selector
+- sound/visual effects
+
