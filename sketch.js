@@ -1,10 +1,8 @@
-// Project Title
-// Your Name
+// Rube Goldberg Machine Game
+// Noor-Eddin Mohamed
 // Date
-//
-// Extra for Experts:
-// - describe what you did to take this project "above and beyond"
-
+// Resources:
+// https://www.youtube.com/watch?v=IQmFqhZ11K8
 
 function setup() {
   createCanvas(windowWidth, windowHeight);

@@ -7,9 +7,7 @@
 - at least 3 levels of progressing difficulty 
 - at least 5 unique contraptions
 
-
 ## Nice to Have
 - level creator
 - start screen / level selector
 - sound/visual effects
-
