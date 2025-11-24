@@ -6,14 +6,14 @@
 ## Needs to Have
 - at least 3 levels of progressing difficulty 
 - at least 5 unique contraptions
+- placeable inventory of contraptions
 - realistic physics (using matterjs)
 - start screen / level selector
 - sound effects
-- placeable inventory of contraptions
+- visual effects
+- nice graphics
 
 
 ## Nice to Have
-- level creator
-- visual effects
-- nice graphics
+- level editor (can download and run user-created levels)
 - scrolling screen

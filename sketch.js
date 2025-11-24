@@ -4,6 +4,7 @@
 
 // for matter.js
 let Engine = Matter.Engine,
+  Bodies = Matter.Bodies,
   Runner = Matter.Runner,
   World = Matter.World,
   Composite = Matter.Composite;
@@ -15,7 +16,7 @@ function setup() {
   // matter.js setup
   engine = Matter.Engine.create(); // creates engine 
   world = engine.world; // creates world for engine to run in
-  Runner.run(engine); // runs engine
+  Runner.run(Runner, engine); // runs engine
 }
 
 function draw() {
