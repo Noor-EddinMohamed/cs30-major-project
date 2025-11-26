@@ -8,19 +8,22 @@ let Engine = Matter.Engine,
 
 let engine;
 let world;
-let box1;
+let boxBody;
+let runner;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
   engine = Engine.create();
   world = engine.world;
-  box1 = Bodies.rectangle(400, 200, 80, 80);
-  Runner.run(engine);
-  World.add(world, box1);
+  boxBody = Bodies.rectangle(400, 200, 80, 80);
+  
+  runner = Runner.create();
+  Runner.run(runner, engine);
+  World.add(world, boxBody);
 }
 
 function draw() {
   background(220);
 
-  rect(box1.position.x, box1.position.y, 80, 80);
+  rect(boxBody.position.x, boxBody.position.y, 80, 80);
 }
