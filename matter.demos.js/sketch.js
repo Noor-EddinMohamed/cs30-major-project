@@ -8,22 +8,35 @@ let Engine = Matter.Engine,
 
 let engine;
 let world;
-let boxBody;
 let runner;
+
+let boxBodies = [];
+let ground;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
   engine = Engine.create();
   world = engine.world;
-  boxBody = Bodies.rectangle(400, 200, 80, 80);
-  
+  let option = {
+    isStatic: true
+  };
+  ground = Bodies.rectangle(width / 2, height, width, 10, option);
+  World.add(world, ground);
+
   runner = Runner.create();
   Runner.run(runner, engine);
-  World.add(world, boxBody);
+  World.add(world, boxObj);
+
+  boxBody = new boxObj(200, 100, 50, 50);
 }
 
 function draw() {
-  background(220);
+  background("black");
+  for (let i = 0; i < boxBodies.length; i++) {
+    boxBodies[i].show();
+  }
+}
 
-  rect(boxBody.position.x, boxBody.position.y, 80, 80);
+function mousePressed() {
+  boxBodies.push(new boxObj(mouseX, mouseY, 20, 20));
 }
