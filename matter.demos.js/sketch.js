@@ -20,7 +20,7 @@ function setup() {
   let option = {
     isStatic: true
   };
-  ground = Bodies.rectangle(width / 2, height, width, 10, option);
+  ground = Bodies.rectangle(width / 2, height / 2, width, 10, option);
   World.add(world, ground);
 
   runner = Runner.create();
@@ -35,6 +35,9 @@ function draw() {
   for (let i = 0; i < boxBodies.length; i++) {
     boxBodies[i].show();
   }
+  fill("white");
+  strokeWeight(3);
+  line(0, height, width, height);
 }
 
 function mousePressed() {

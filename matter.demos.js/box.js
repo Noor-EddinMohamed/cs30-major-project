@@ -11,9 +11,11 @@ function boxObj(x, y, w, h) {
 
     push();
     translate(pos.x, pos.y);
+    rotate(angle);
+    rectMode(CENTER);
+    strokeWeight(1);
     rect(0, 0, this.w, this.h);
 
     pop();
   };
-
 }
