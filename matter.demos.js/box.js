@@ -13,7 +13,7 @@ function boxObj(x, y, w, h) {
     translate(pos.x, pos.y);
     rotate(angle);
     rectMode(CENTER);
-    strokeWeight(1);
+    noStroke();
     rect(0, 0, this.w, this.h);
 
     pop();
