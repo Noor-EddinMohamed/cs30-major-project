@@ -2,13 +2,15 @@
 // Noor-Eddin Mohamed
 // January 19 2026
 
-// for matter.js
+// matter.js aliases
 let Engine = Matter.Engine,
+  Render = Matter.Render,
   Runner = Matter.Runner,
   Bodies = Matter.Bodies,
   Composite = Matter.Composite;
-    
+
 let engine;
+let runner;
 
 let theGrid;
 const CELL_SIZE = 100;
@@ -19,8 +21,11 @@ function setup() {
   createCanvas(windowWidth, windowHeight);
 
   // matter.js setup
-  engine = Engine.create(); // creates engine 
-  Runner.run(Runner, engine); // runs engine
+  engine = Engine.create(); // creates engine
+  Composite.add(engine); // adds engine to world
+
+  runner = Runner.create(); // creates runner
+  Runner.run(runner, engine); // runs engine
 
   cols = Math.floor(width / CELL_SIZE);
   rows = Math.floor(height / CELL_SIZE);
