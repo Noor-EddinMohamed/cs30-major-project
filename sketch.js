@@ -4,12 +4,14 @@
 
 // matter.js aliases
 let Engine = Matter.Engine,
+  World = Matter.World,
   Render = Matter.Render,
   Runner = Matter.Runner,
   Bodies = Matter.Bodies,
   Composite = Matter.Composite;
 
 let engine;
+let world;
 let runner;
 
 let theGrid;
