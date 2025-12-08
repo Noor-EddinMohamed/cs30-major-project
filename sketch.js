@@ -4,8 +4,6 @@
 
 // matter.js aliases
 let Engine = Matter.Engine,
-  World = Matter.World,
-  Render = Matter.Render,
   Runner = Matter.Runner,
   Bodies = Matter.Bodies,
   Composite = Matter.Composite;
@@ -24,11 +22,12 @@ function setup() {
 
   // matter.js setup
   engine = Engine.create(); // creates engine
-  Composite.add(engine); // adds engine to world
+  world = engine.world;
+  
+  runner = Runner.create(); // runs engine
+  Runner.run(runner, engine); 
 
-  runner = Runner.create(); // creates runner
-  Runner.run(runner, engine); // runs engine
-
+  // 2d array setup
   cols = Math.floor(width / CELL_SIZE);
   rows = Math.floor(height / CELL_SIZE);
 
@@ -37,6 +36,7 @@ function setup() {
 
 function draw() {
   background(220);
+  Engine.update(engine);
   showGrid();
 }
 
@@ -63,4 +63,33 @@ function generateEmptyGrid(cols, rows) {
     }
   }
   return newGrid;
+}
+
+class Ball {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.diameter = 50;
+    this.color = "red";
+    this.dx = dx;
+    this.dy = dy;
+  }
+  
+  update() {
+    this.x += this.dx;
+    this.y += this.dy;
+  }
+
+  display() {
+
+  }
+}
+
+class Wall {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.size = CELL_SIZE;
+    this.color = "black";
+  }
 }
