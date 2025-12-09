@@ -8,14 +8,18 @@ let Engine = Matter.Engine,
   Bodies = Matter.Bodies,
   Composite = Matter.Composite;
 
+// matter.js variables
 let engine;
 let world;
 let runner;
 
+// 2d array variables
 let theGrid;
 const CELL_SIZE = 100;
 let rows;
 let cols;
+
+let wallArray = [];
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -37,19 +41,43 @@ function setup() {
 function draw() {
   background(220);
   Engine.update(engine);
+  for (let aWall in wallArray) {
+    aWall.display();
+  }
   showGrid();
+}
+
+function mousePressed() {
+  let x = Math.floor(mouseX/CELL_SIZE);
+  let y = Math.floor(mouseY/CELL_SIZE);
+
+  //self
+  toggleCell(x ,y);
+}
+
+function toggleCell(x, y) {
+  //make sure the cell you're toggling actually exists!
+  if (x >= 0 && x < cols && y >= 0 && y < rows) {
+    if (theGrid[y][x] === 0) {
+      theGrid[y][x] = 1;
+    }
+    else if (theGrid[y][x] === 1) {
+      theGrid[y][x] = 0;
+    }
+  }
 }
 
 function showGrid() {
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       if (theGrid[y][x] === 1) {
-        fill("black");
+        let aWall = new Wall(x * CELL_SIZE, y * CELL_SIZE); // probably a better way to do this
+        wallArray.push(aWall);
       }
       else if (theGrid[y][x] === 0) {
         fill("white");
-      }
-      square(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE);
+        square(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE);
+      }  
     }
   }
 }
@@ -91,5 +119,9 @@ class Wall {
     this.y = y;
     this.size = CELL_SIZE;
     this.color = "black";
+  }
+
+  display() {
+
   }
 }
