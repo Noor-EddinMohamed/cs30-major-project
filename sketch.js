@@ -3,10 +3,7 @@
 // January 19 2026
 
 // matter.js aliases
-let Engine = Matter.Engine,
-  Runner = Matter.Runner,
-  Bodies = Matter.Bodies,
-  Composite = Matter.Composite;
+const { Engine, Runner, Bodies, Composite } = Matter;
 
 // matter.js variables
 let engine;
@@ -15,7 +12,7 @@ let runner;
 
 // 2d array variables
 let theGrid;
-const CELL_SIZE = 100;
+const CELL_SIZE = 50;
 let rows;
 let cols;
 
@@ -39,10 +36,9 @@ function setup() {
 }
 
 function draw() {
-  background(220);
   Engine.update(engine);
-  for (let aWall in wallArray) {
-    aWall.display();
+  for (let someWall of wallArray) {
+    someWall.display();
   }
   showGrid();
 }
@@ -71,8 +67,7 @@ function showGrid() {
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       if (theGrid[y][x] === 1) {
-        let aWall = new Wall(x * CELL_SIZE, y * CELL_SIZE); // probably a better way to do this
-        wallArray.push(aWall);
+        
       }
       else if (theGrid[y][x] === 0) {
         fill("white");
@@ -115,13 +110,27 @@ class Ball {
 
 class Wall {
   constructor(x, y) {
-    this.x = x;
-    this.y = y;
-    this.size = CELL_SIZE;
-    this.color = "black";
+    this.w = CELL_SIZE;
+    // this.x = x;
+    // this.y = y;
+    // this.size = CELL_SIZE;
+    // this.color = "black";
+    let options = { isStatic: true};
+    this.body = Bodies.rectangle(x, y, this.w, this.w, options);
+
+    Composite.add(engine.world, this.body);
   }
 
   display() {
-
+    let position = this.body.position;
+    let angle = this.body.angle;
+    
+    push();
+    rectMode(CENTER);
+    fill("black");
+    translate(position.x, position.y);
+    rotate(angle);
+    square(0, 0, this.w);
+    pop();
   }
 }
