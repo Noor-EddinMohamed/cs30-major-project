@@ -37,10 +37,10 @@ function setup() {
 
 function draw() {
   Engine.update(engine);
+  showGrid();
   for (let someWall of wallArray) {
     someWall.display();
   }
-  showGrid();
 }
 
 function mousePressed() {
@@ -56,6 +56,8 @@ function toggleCell(x, y) {
   if (x >= 0 && x < cols && y >= 0 && y < rows) {
     if (theGrid[y][x] === 0) {
       theGrid[y][x] = 1;
+      let theWall = new Wall(x, y);
+      wallArray.push(theWall);
     }
     else if (theGrid[y][x] === 1) {
       theGrid[y][x] = 0;
@@ -67,7 +69,6 @@ function showGrid() {
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       if (theGrid[y][x] === 1) {
-        
       }
       else if (theGrid[y][x] === 0) {
         fill("white");
