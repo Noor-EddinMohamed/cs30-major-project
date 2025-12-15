@@ -36,6 +36,7 @@ function setup() {
 }
 
 function draw() {
+  background("white");
   Engine.update(engine);
   showGrid();
   for (let someWall of wallArray) {
@@ -47,34 +48,16 @@ function mousePressed() {
   let x = Math.floor(mouseX/CELL_SIZE);
   let y = Math.floor(mouseY/CELL_SIZE);
 
-  //self
-  toggleCell(x ,y);
-}
-
-function toggleCell(x, y) {
-  //make sure the cell you're toggling actually exists!
-  if (x >= 0 && x < cols && y >= 0 && y < rows) {
-    if (theGrid[y][x] === 0) {
-      theGrid[y][x] = 1;
-      let theWall = new Wall(x, y);
-      wallArray.push(theWall);
-    }
-    else if (theGrid[y][x] === 1) {
-      theGrid[y][x] = 0;
-    }
-  }
+  let theWall = new Wall(mouseX, mouseY);
+  wallArray.push(theWall);
 }
 
 function showGrid() {
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
-      if (theGrid[y][x] === 1) {
-      }
-      else if (theGrid[y][x] === 0) {
-        fill("white");
-        square(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE);
-      }  
-    }
+      fill("white");
+      square(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE);
+    }  
   }
 }
 
@@ -111,27 +94,18 @@ class Ball {
 
 class Wall {
   constructor(x, y) {
+    this.x = x;
+    this.y = y;
     this.w = CELL_SIZE;
-    // this.x = x;
-    // this.y = y;
-    // this.size = CELL_SIZE;
-    // this.color = "black";
-    let options = { isStatic: true};
-    this.body = Bodies.rectangle(x, y, this.w, this.w, options);
+    let options = { isStatic: true };
+    this.body = Bodies.rectangle(this.x, this.y, this.w, this.w, options);
 
     Composite.add(engine.world, this.body);
   }
 
-  display() {
-    let position = this.body.position;
-    let angle = this.body.angle;
-    
-    push();
+  display() {    
     rectMode(CENTER);
     fill("black");
-    translate(position.x, position.y);
-    rotate(angle);
-    square(0, 0, this.w);
-    pop();
+    square(this.x, this.y, this.w);
   }
 }
