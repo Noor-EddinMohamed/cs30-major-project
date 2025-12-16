@@ -45,10 +45,14 @@ function draw() {
 }
 
 function mousePressed() {
-  let x = Math.floor(mouseX/CELL_SIZE);
-  let y = Math.floor(mouseY/CELL_SIZE);
+  let x = Math.round(mouseX / CELL_SIZE) * CELL_SIZE;
+  let y = Math.round(mouseY / CELL_SIZE) * CELL_SIZE;
 
-  let theWall = new Wall(mouseX, mouseY);
+  toggleCell(x, y);
+}
+
+function toggleCell(x, y) {
+  let theWall = new Wall(x, y);
   wallArray.push(theWall);
 }
 
@@ -104,8 +108,11 @@ class Wall {
   }
 
   display() {    
+
+    push();
     rectMode(CENTER);
     fill("black");
     square(this.x, this.y, this.w);
+    pop();
   }
 }
