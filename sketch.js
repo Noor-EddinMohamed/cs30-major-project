@@ -104,15 +104,18 @@ class Ball {
     this.y = y;
     this.radius = CELL_SIZE / 2;
     this.color = "red";
-    this.body = Bodies.circle(this.x, this.y, this.radius);
+    let options = { restitution: 0.9, friction: 0.25 };
+    this.body = Bodies.circle(this.x, this.y, this.radius, options);
 
     Composite.add(engine.world, this.body);
   }
   
   display() {
     let position = this.body.position;
+    let angle = this.body.angle;
     push();
     translate(position.x, position.y);
+    rotate(angle);
     fill(this.color);
     circle(0, 0, this.radius * 2);
     pop();  
