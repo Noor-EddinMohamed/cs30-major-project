@@ -3,7 +3,7 @@
 // January 19 2026
 
 // matter.js aliases
-const { Engine, Runner, Bodies, Composite } = Matter;
+const { Engine, Runner, Bodies, Composite, Query } = Matter;
 
 // matter.js variables
 let engine;
@@ -41,47 +41,21 @@ function setup() {
   // ball-trampoline collision function
   function onCollision(event) {
     for (let pair of event.pairs) {
-      handleTrampCollision(pair);
+      onTrampCollision(pair);
     }
   }
   Matter.Events.on(engine, "collisionStart", onCollision);
 }
 
-function handleTrampCollision(pair) {
+function handleCollision(pair) {
   let bodyA = pair.bodyA;
   let bodyB = pair.bodyB;
 
-  let ball = null;
-  let tramp = null;
-
-  for (let b of ballArray) {
-    if (b.body === bodyA || b.body === bodyB) {
-      ball = b;
-      break;
-    }
-  }
-
   for (let c of contrArray) {
-    if (c instanceof Trampoline) {
-      if (c.body === bodyA || c.body === bodyB) {
-        tramp = c;
-        break;
-      }
+    if (c.body === bodyA || c.body === bodyB) {
+      c.onCollision(pair);
     }
   }
-
-  if (!ball || !tramp) return;
-
-  let angle = tramp.body.angle;
-
-  // bounce physics
-  let vyBall = ball.body.velocity.y;
-  let speed = Math.max(10, Math.abs(vyBall) * 1.2);; 
-
-  let vx = Math.sin(angle) * speed;
-  let vy = -Math.cos(angle) * speed;
-
-  Matter.Body.setVelocity(ball.body, { x: vx, y: vy });
 }
 
 function draw() {
@@ -98,6 +72,11 @@ function draw() {
   }
   for (let someContr of contrArray) {
     someContr.display();
+    if (someContr instanceof Fan) {
+      for (let ball of ballArray) {
+        someContr.applyAirflow(ball);
+      }
+    }
   }
 }
 
@@ -121,6 +100,9 @@ function keyPressed() {
   }
   else if (key === "t") {
     setting = "tramp";
+  }
+  else if (key === "f") {
+    setting = "fan";
   }
   else if (keyCode === LEFT_ARROW) {
     if (contrArray.length > 0) {
@@ -194,6 +176,10 @@ function toggleCell(x, y) {
     let theContr = new Trampoline(x, y, 0);
     contrArray.push(theContr);
   }
+  else if (setting === "fan") {
+    let theContr = new Fan(x, y, 0);
+    contrArray.push(theContr);
+  }
 }
 
 function deleteCell(x, y) {
@@ -242,6 +228,8 @@ function showGrid() {
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       fill("white");
+      stroke("black");
+      strokeWeight(1);
       rectMode(CENTER);
       square(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE);
     }  
@@ -306,6 +294,12 @@ class Wall {
   }
 }
 
+function canRotate(body, allBodies) {
+  // prevents rotation into other objects
+  const collisions = Query.collides(body, allBodies);
+  return collisions.length === 0;
+}
+
 class Contraption {
   constructor(x, y, angle) {
     this.x = x;
@@ -314,34 +308,88 @@ class Contraption {
   }
 
   rotateLeft() {
-    this.angle = (this.angle - 15) % 360;
-    Matter.Body.setAngle(this.body, this.angle * (Math.PI/180));
-
+    this.tryRotate(-Math.PI / 12);
   }
+
   rotateRight() {
-    this.angle = (this.angle + 15) % 360;
-    Matter.Body.setAngle(this.body, this.angle * (Math.PI/180));
+    this.tryRotate(Math.PI / 12);
+  }
+
+  tryRotate(delta) {
+    const oldAngle = this.body.angle;
+    Matter.Body.setAngle(this.body, oldAngle + delta);
+
+    // all other bodies in the world
+    const allBodies = Composite.allBodies(engine.world);
+    let others = [];
+
+    for (let b of allBodies) {
+      if (b !== this.body) {
+        others.push(b);
+      }
+    }
+
+    if (!canRotate(this.body, others)) {
+      // undo rotation
+      Matter.Body.setAngle(this.body, oldAngle);
+    } else {
+      this.angle = oldAngle + delta;
+    }
   }
 }
+
+function onTrampCollision(pair) {
+  let bodyA = pair.bodyA;
+  let bodyB = pair.bodyB;
+
+  // Find the ball involved
+  let ball = null;
+  for (let b of ballArray) {
+    if (b.body === bodyA || b.body === bodyB) {
+      ball = b;
+    }
+  }
+  if (!ball) return;
+
+  // Find the trampoline involved
+  let tramp = null;
+  for (let t of contrArray) {
+    if (t instanceof Trampoline && (t.body === bodyA || t.body === bodyB)) {
+      tramp = t;
+      break;
+    }
+  }
+  if (!tramp) return;
+
+  let angle = tramp.body.angle; 
+  let incoming = Math.abs(ball.body.velocity.y);
+  let speed = Math.max(15, incoming * 1.2);
+
+  Matter.Body.setVelocity(ball.body, {
+    x: Math.sin(angle) * speed,
+    y: -Math.cos(angle) * speed
+  });
+}
+  
 
 class Trampoline extends Contraption {
   constructor(x, y, angle) {
     super(x, y, angle)
     this.color = "purple";
+    this.stroke = "black";
     this.width = CELL_SIZE;
     this.height = CELL_SIZE / 5;
     let options = { isStatic: true };
     this.body = Bodies.rectangle(this.x, this.y, this.width, this.height, options);
     this.body.label = "trampoline";
-    Matter.Body.setAngle(this.body, this.angle * (Math.PI/180));
+    Matter.Body.setAngle(this.body, this.angle);
 
     Composite.add(engine.world, this.body);
-
   }
 
   rotate() {
     super.rotate();
-    Matter.Body.setAngle(this.body, this.angle * (Math.PI / 180));
+    Matter.Body.setAngle(this.body, this.angle);
   }
 
   display() {
@@ -352,7 +400,96 @@ class Trampoline extends Contraption {
     rotate(angle);
     rectMode(CENTER);
     fill(this.color);
+    stroke(this.stroke);
     rect(0, 0, this.width, this.height);
+    pop();
+  }
+}
+
+class Fan extends Contraption {
+  constructor(x, y, angle) {
+    super(x, y, angle);
+    this.color = "grey";
+    this.stroke = "black";
+    this.width = CELL_SIZE * 2;
+    this.height = CELL_SIZE / 5;
+    this.strength = 0.05;
+    let options = { isStatic: true};
+    this.body = Bodies.rectangle(this.x, this.y, this.width, this.height, options);
+    Matter.Body.setAngle(this.body, this.angle);
+
+    Composite.add(engine.world, this.body)
+  }
+
+  rotate() {
+    super.rotate();
+    Matter.Body.setAngle(this.body, this.angle);
+  }
+
+  applyAirflow(ball) {
+    const fanPos = this.body.position;
+    const angle = this.body.angle;
+
+    // Fan endpoints in world space
+    const left = Matter.Vector.add(fanPos, Matter.Vector.rotate({ x: -this.width/2, y: 0 }, angle));
+    const right = Matter.Vector.add(fanPos, Matter.Vector.rotate({ x: this.width/2, y: 0 }, angle));
+
+    // Vector along the fan (width)
+    const fanVec = Matter.Vector.sub(right, left);
+    const fanLen = Matter.Vector.magnitude(fanVec);
+    const fanDir = Matter.Vector.normalise(fanVec);
+
+    // Vector from left end to ball
+    const ballVec = Matter.Vector.sub(ball.body.position, left);
+
+    // Project ball onto fan width
+    const proj = Matter.Vector.dot(ballVec, fanDir);
+
+    // Check if ball is within fan width
+    if (proj < 0 || proj > fanLen) return;
+
+    // Perpendicular distance to fan line (stackoverflow helped with the vector math here)
+    const perp = ballVec.x * fanDir.y - ballVec.y * fanDir.x;
+
+    // Only apply force if ball is on the active side (perp > 0)
+    if (perp <= 0) return;
+
+    // Strength falls off with distance from fan
+    const distance = Math.abs(perp);
+    const strength = this.strength / (distance * 0.05 + 1);
+
+    // Force vector along fan’s forward direction (perpendicular to fan width)
+    const force = {
+      x: fanDir.y * strength,
+      y: -fanDir.x * strength
+    };
+
+    Matter.Body.applyForce(ball.body, ball.body.position, force);
+  }
+
+  display() {
+    let pos = this.body.position;
+    let angle = this.body.angle;
+    push();
+    translate(pos.x, pos.y);
+    rotate(angle);
+    rectMode(CENTER);
+    stroke(this.stroke);
+    fill(this.color);
+    rect(0, 0, this.width, this.height);
+
+    // airflow lines
+    stroke('rgba(0, 150, 255, 0.3)');
+
+    let numLines = 5; 
+    let spacing = this.width / (numLines - 1);
+
+    for (let i = 0; i < numLines; i++) {
+      let x = -this.width/2 + i * spacing; 
+      let yStart = -this.height / 2;        
+      let yEnd = yStart - CELL_SIZE * 1.5; 
+      line(x, yStart, x, yEnd);
+    }
     pop();
   }
 }
