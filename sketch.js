@@ -16,6 +16,8 @@ const CELL_SIZE = 50;
 let rows;
 let cols;
 
+let goal;
+
 let wallArray = [];
 let ballArray = [];
 let contrArray = [];
@@ -38,13 +40,12 @@ function setup() {
 
   theGrid = generateEmptyGrid(cols, rows);
 
-  // ball-trampoline collision function
-  function onCollision(event) {
+  // collision detector
+  Matter.Events.on(engine, "collisionStart", (event) => {
     for (let pair of event.pairs) {
-      onTrampCollision(pair);
+      handleCollision(pair);
     }
-  }
-  Matter.Events.on(engine, "collisionStart", onCollision);
+  });
 }
 
 function handleCollision(pair) {
@@ -53,14 +54,28 @@ function handleCollision(pair) {
 
   for (let c of contrArray) {
     if (c.body === bodyA || c.body === bodyB) {
-      c.onCollision(pair);
+      if (c.onCollision) {
+        c.onCollision(pair);
+      }
     }
+  }
+
+  // conveyors no bounce
+  if ((bodyA.label === "ball" && bodyB.label === "conveyor") ||
+      (bodyB.label === "ball" && bodyA.label === "conveyor")) {
+    pair.restitution = 0;
+  }
+
+  // goal collision
+  if (bodyA.label === "goal" && bodyB.label === "ball") {
+    removeBall(bodyB);
+  } else if (bodyB.label === "goal" && bodyA.label === "ball") {
+    removeBall(bodyA);
   }
 }
 
 function draw() {
   background("white");
-  Engine.update(engine);
   deleteOutOfBounds();
   showGrid();
 
@@ -76,6 +91,22 @@ function draw() {
       for (let ball of ballArray) {
         someContr.applyAirflow(ball);
       }
+    }
+    if (someContr instanceof Conveyor) {
+      someContr.applyConveyorForce();
+    }
+  }
+  if (goal) {
+    goal.display();
+  }
+}
+
+function removeBall(ballBody) {
+  for (let i = ballArray.length - 1; i >= 0; i--) {
+    if (ballArray[i].body === ballBody) {
+      Composite.remove(engine.world, ballBody);
+      ballArray.splice(i, 1);
+      break;
     }
   }
 }
@@ -99,10 +130,16 @@ function keyPressed() {
     setting = "ball";
   }
   else if (key === "t") {
-    setting = "tramp";
+    setting = "trampoline";
   }
   else if (key === "f") {
     setting = "fan";
+  }
+  else if (key === "c") {
+    setting = "conveyor";
+  }
+  else if (key === "g") {
+    setting = "goal"; 
   }
   else if (keyCode === LEFT_ARROW) {
     if (contrArray.length > 0) {
@@ -126,18 +163,20 @@ function isInsideGrid(x, y) {
 }
 
 function getOccupiedCells(body) {
-  // can't place stuff outside cells
-  let bounds = body.bounds;
-  let occupied = [];
+  const bounds = body.bounds;
+  const occupied = [];
 
-  let startCol = Math.floor(bounds.min.x / CELL_SIZE);
-  let endCol   = Math.floor(bounds.max.x / CELL_SIZE);
-  let startRow = Math.floor(bounds.min.y / CELL_SIZE);
-  let endRow   = Math.floor(bounds.max.y / CELL_SIZE);
+  const startCol = Math.floor(bounds.min.x / CELL_SIZE);
+  const endCol   = Math.floor((bounds.max.x - 1) / CELL_SIZE);
+  const startRow = Math.floor(bounds.min.y / CELL_SIZE);
+  const endRow   = Math.floor((bounds.max.y - 1) / CELL_SIZE);
 
-  for (let i = startCol; i <= endCol; i++) {
-    for (let j = startRow; j <= endRow; j++) {
-      occupied.push({x: i * CELL_SIZE, y: j * CELL_SIZE});
+  for (let col = startCol; col <= endCol; col++) {
+    for (let row = startRow; row <= endRow; row++) {
+      occupied.push({
+        x: col * CELL_SIZE,
+        y: row * CELL_SIZE
+      });
     }
   }
 
@@ -145,16 +184,36 @@ function getOccupiedCells(body) {
 }
 
 function isCellOccupied(x, y) {
+  // check walls
   for (let w of wallArray) {
-    if (w.x === x && w.y === y) {
-      return true;
+    const cells = getOccupiedCells(w.body);
+    for (let c of cells) {
+      if (c.x === x && c.y === y) {
+        return true;
+      }
     }
   }
+
+  // check contraptions
   for (let c of contrArray) {
-    if (c.x === x && c.y === y) {
-      return true;
+    const cells = getOccupiedCells(c.body);
+    for (let cell of cells) {
+      if (cell.x === x && cell.y === y) {
+        return true;
+      }
     }
   }
+
+  // check goal
+    if (goal) {
+    const cells = getOccupiedCells(goal.body);
+    for (let cell of cells) {
+      if (cell.x === x && cell.y === y) {
+        return true;
+      }
+    }
+  }
+
   return false;
 }
 
@@ -172,7 +231,7 @@ function toggleCell(x, y) {
     let theBall = new Ball(x, y);
     ballArray.push(theBall);
   }
-  else if (setting === "tramp") {
+  else if (setting === "trampoline") {
     let theContr = new Trampoline(x, y, 0);
     contrArray.push(theContr);
   }
@@ -180,30 +239,61 @@ function toggleCell(x, y) {
     let theContr = new Fan(x, y, 0);
     contrArray.push(theContr);
   }
+  else if (setting === "conveyor") {
+    let theContr = new Conveyor(x, y, 0);
+    contrArray.push(theContr);
+  }
+  else if (setting === "goal") {
+    // delete old goal if it exists
+    if (goal) {
+      Composite.remove(engine.world, goal.body);
+      let index = contrArray.indexOf(goal);
+      if (index !== -1) {
+        contrArray.splice(index, 1);
+      }
+    }
+    goal = new Goal(x, y, CELL_SIZE);
+  }
 }
 
 function deleteCell(x, y) {
-    for (let i = contrArray.length - 1; i >= 0; i--) {
-    if (contrArray[i].x === x && contrArray[i].y === y) {
-      Composite.remove(engine.world, contrArray[i].body);
-      contrArray.splice(i, 1);
-      return; 
-    }
-  }
-
+  // delete walls
   for (let i = wallArray.length - 1; i >= 0; i--) {
-    if (wallArray[i].x === x && wallArray[i].y === y) {
-      Composite.remove(engine.world, wallArray[i].body);
-      wallArray.splice(i, 1);
-      return;
+    const w = wallArray[i];
+    const cells = getOccupiedCells(w.body);
+
+    for (let cell of cells) {
+      if (cell.x === x && cell.y === y) {
+        Composite.remove(engine.world, w.body);
+        wallArray.splice(i, 1);
+        return;
+      }
     }
   }
 
-  for (let i = ballArray.length - 1; i >= 0; i--) {
-    if (ballArray[i].x === x && ballArray[i].y === y) {
-      Composite.remove(engine.world, ballArray[i].body);
-      ballArray.splice(i, 1);
-      return;
+  // delete contraptions
+  for (let i = contrArray.length - 1; i >= 0; i--) {
+    const c = contrArray[i];
+    const cells = getOccupiedCells(c.body);
+
+    for (let cell of cells) {
+      if (cell.x === x && cell.y === y) {
+        Composite.remove(engine.world, c.body);
+        contrArray.splice(i, 1);
+        return;
+      }
+    }
+  }
+  
+  // check goal
+  if (goal) {
+    const cells = getOccupiedCells(goal.body);
+    for (let cell of cells) {
+      if (cell.x === x && cell.y === y) {
+        Composite.remove(engine.world, goal.body);
+        goal = null;
+        return;
+      }
     }
   }
 }
@@ -222,6 +312,12 @@ function deleteOutOfBounds() {
       ballArray.splice(i, 1);
     }
   }
+}
+
+function canRotate(body, allBodies) {
+  // prevents rotation into other objects
+  const collisions = Query.collides(body, allBodies);
+  return collisions.length === 0;
 }
 
 function showGrid() {
@@ -253,10 +349,9 @@ class Ball {
     this.y = y;
     this.radius = CELL_SIZE / 2;
     this.color = "red";
-    let options = { restitution: 0.5, friction: 0.1 };
+    let options = { restitution: 0.5 };
     this.body = Bodies.circle(this.x, this.y, this.radius, options);
     this.body.label = "ball";
-
 
     Composite.add(engine.world, this.body);
   }
@@ -294,10 +389,25 @@ class Wall {
   }
 }
 
-function canRotate(body, allBodies) {
-  // prevents rotation into other objects
-  const collisions = Query.collides(body, allBodies);
-  return collisions.length === 0;
+class Goal {
+  constructor(x, y, width) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.color = "red"; 
+    let options = { isStatic: true };
+    this.body = Matter.Bodies.rectangle(this.x, this.y, this.width, this.width, options);
+    this.body.label = "goal";
+    Matter.Composite.add(engine.world, this.body);
+  }
+
+  display() {
+    push();
+    rectMode(CENTER);
+    fill(this.color);
+    square(this.x, this.y, this.width);
+    pop();
+  }
 }
 
 class Contraption {
@@ -332,45 +442,12 @@ class Contraption {
     if (!canRotate(this.body, others)) {
       // undo rotation
       Matter.Body.setAngle(this.body, oldAngle);
-    } else {
+    } 
+    else {
       this.angle = oldAngle + delta;
     }
   }
 }
-
-function onTrampCollision(pair) {
-  let bodyA = pair.bodyA;
-  let bodyB = pair.bodyB;
-
-  // Find the ball involved
-  let ball = null;
-  for (let b of ballArray) {
-    if (b.body === bodyA || b.body === bodyB) {
-      ball = b;
-    }
-  }
-  if (!ball) return;
-
-  // Find the trampoline involved
-  let tramp = null;
-  for (let t of contrArray) {
-    if (t instanceof Trampoline && (t.body === bodyA || t.body === bodyB)) {
-      tramp = t;
-      break;
-    }
-  }
-  if (!tramp) return;
-
-  let angle = tramp.body.angle; 
-  let incoming = Math.abs(ball.body.velocity.y);
-  let speed = Math.max(15, incoming * 1.2);
-
-  Matter.Body.setVelocity(ball.body, {
-    x: Math.sin(angle) * speed,
-    y: -Math.cos(angle) * speed
-  });
-}
-  
 
 class Trampoline extends Contraption {
   constructor(x, y, angle) {
@@ -381,7 +458,6 @@ class Trampoline extends Contraption {
     this.height = CELL_SIZE / 5;
     let options = { isStatic: true };
     this.body = Bodies.rectangle(this.x, this.y, this.width, this.height, options);
-    this.body.label = "trampoline";
     Matter.Body.setAngle(this.body, this.angle);
 
     Composite.add(engine.world, this.body);
@@ -404,6 +480,34 @@ class Trampoline extends Contraption {
     rect(0, 0, this.width, this.height);
     pop();
   }
+
+  onCollision(pair) {
+    let bodyA = pair.bodyA;
+    let bodyB = pair.bodyB;
+
+    // Find the ball involved
+    let ball;
+    for (let b of ballArray) {
+      if (b.body === bodyA || b.body === bodyB) {
+        ball = b;
+        break;
+      }
+    }
+    if (!ball) return;
+
+    // Make sure this trampoline is involved
+    if (this.body !== bodyA && this.body !== bodyB) return;
+
+    // Collision physics
+    let angle = this.body.angle; 
+    let incoming = Math.abs(ball.body.velocity.y);
+    let speed = Math.max(15, incoming * 1.2);
+
+    Matter.Body.setVelocity(ball.body, {
+      x: Math.sin(angle) * speed,
+      y: -Math.cos(angle) * speed
+    });
+  }
 }
 
 class Fan extends Contraption {
@@ -413,7 +517,7 @@ class Fan extends Contraption {
     this.stroke = "black";
     this.width = CELL_SIZE * 2;
     this.height = CELL_SIZE / 5;
-    this.strength = 0.05;
+    this.strength = 0.025;
     let options = { isStatic: true};
     this.body = Bodies.rectangle(this.x, this.y, this.width, this.height, options);
     Matter.Body.setAngle(this.body, this.angle);
@@ -454,6 +558,25 @@ class Fan extends Contraption {
     // Only apply force if ball is on the active side (perp > 0)
     if (perp <= 0) return;
 
+    // raycasting to detect if other bodies are in the way
+    const fanForward = { x: fanDir.y, y: -fanDir.x };
+    const rayEnd = {
+        x: fanPos.x + fanForward.x * Math.abs(perp),
+        y: fanPos.y + fanForward.y * Math.abs(perp)
+    };
+
+    const blockers = Matter.Query.ray(
+        Matter.Composite.allBodies(engine.world),
+        fanPos,
+        rayEnd
+    );
+
+    for (let hit of blockers) {
+        if (hit.body !== this.body && hit.body !== ball.body) {
+            return; // airflow blocked
+        }
+    }
+
     // Strength falls off with distance from fan
     const distance = Math.abs(perp);
     const strength = this.strength / (distance * 0.05 + 1);
@@ -478,18 +601,116 @@ class Fan extends Contraption {
     fill(this.color);
     rect(0, 0, this.width, this.height);
 
-    // airflow lines
-    stroke('rgba(0, 150, 255, 0.3)');
+    // airflow arrows
+    strokeWeight(2);
 
-    let numLines = 5; 
-    let spacing = this.width / (numLines - 1);
+    let numStreams = 6;
+    let spacing = this.width / (numStreams - 1);
+    let flowLength = CELL_SIZE * 3;
 
-    for (let i = 0; i < numLines; i++) {
-      let x = -this.width/2 + i * spacing; 
-      let yStart = -this.height / 2;        
-      let yEnd = yStart - CELL_SIZE * 1.5; 
-      line(x, yStart, x, yEnd);
+    let speed = 2;
+    let offset = (frameCount * speed) % 20;
+
+    for (let i = 0; i < numStreams; i++) {
+      let x = -this.width / 2 + i * spacing;
+
+      for (let y = -this.height/2 - offset; y > -flowLength; y -= 20) {
+        // fade based on distance from fan
+
+        let t = map(y, -this.height/2, -flowLength, 1, 0);
+        let alpha = 150 * t;
+
+        stroke(0, 150, 255, alpha);
+
+        // shaft
+        line(x, y, x, y - CELL_SIZE / 5);
+
+        // arrow head
+        line(x, y - CELL_SIZE / 5, x - CELL_SIZE / 12.5, y - CELL_SIZE / 12.5);
+        line(x, y - CELL_SIZE / 5, x + CELL_SIZE / 12.5, y - CELL_SIZE / 12.5);
+      }
     }
+    pop();
+  }
+}
+
+class Conveyor extends Contraption {
+  constructor(x, y, angle) {
+    super(x, y, angle)
+    this.color = "green";
+    this.stroke = "black";
+    this.width = CELL_SIZE * 3;
+    this.height = CELL_SIZE / 5;
+    this.sideForce = 0.0025;
+    let options = { isStatic: true };
+    this.body = Bodies.rectangle(this.x, this.y, this.width, this.height, options);
+    this.body.label = "conveyor";
+    Matter.Body.setAngle(this.body, this.angle);
+
+    Composite.add(engine.world, this.body);
+  }
+
+  rotate() {
+    super.rotate();
+    Matter.Body.setAngle(this.body, this.angle);
+  }
+
+  onCollision(pair) {
+    for (let b of ballArray) {
+      if (b.body === pair.bodyA || b.body === pair.bodyB) {
+        b.conveyorOn = true; 
+      }
+    }
+  }
+
+  applyConveyorForce() {
+    const angle = this.body.angle;
+    const forceVector = { 
+      x: Math.cos(angle) * this.sideForce, 
+      y: Math.sin(angle) * this.sideForce 
+    };
+
+    for (let b of ballArray) {
+      if (b.conveyorOn) {
+          Matter.Body.applyForce(b.body, b.body.position, forceVector);
+        }
+      }
+    }
+
+  display() {
+    let position = this.body.position;
+    let angle = this.body.angle;
+    push();
+    translate(position.x, position.y);
+    rotate(angle);
+    rectMode(CENTER);
+    fill(this.color);
+    stroke(this.stroke);
+    rect(0, 0, this.width, this.height);
+    stroke(0);
+    strokeWeight(1);
+
+    // drawing segment lines
+    let numSegments = this.width / CELL_SIZE;
+    for (let i = 1; i < numSegments; i++) {
+      let x = -this.width / 2 + i * CELL_SIZE;
+      line(x, -this.height / 2, x, this.height / 2);
+    }
+
+    // arrows
+    stroke(255);
+    strokeWeight(2);
+    fill(255);
+
+    let spacing = CELL_SIZE;
+    let offset = (frameCount * 1.5) % spacing;
+
+    for (let x = -this.width/2 + offset; x < this.width/2; x += spacing) {
+      line(x - CELL_SIZE / 5, 0, x + CELL_SIZE / 5, 0);     
+      line(x + CELL_SIZE / 5, 0, x + CELL_SIZE / 12.5, -CELL_SIZE / 12.5);    
+      line(x + CELL_SIZE / 5, 0, x + CELL_SIZE / 12.5,  CELL_SIZE / 12.5);
+    }
+
     pop();
   }
 }
