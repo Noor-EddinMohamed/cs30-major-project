@@ -61,15 +61,16 @@ function handleCollision(pair) {
   }
 
   // conveyors no bounce
-  if ((bodyA.label === "ball" && bodyB.label === "conveyor") ||
-      (bodyB.label === "ball" && bodyA.label === "conveyor")) {
+  if (bodyA.label === "ball" && bodyB.label === "conveyor" ||
+      bodyB.label === "ball" && bodyA.label === "conveyor") {
     pair.restitution = 0;
   }
 
   // goal collision
   if (bodyA.label === "goal" && bodyB.label === "ball") {
     removeBall(bodyB);
-  } else if (bodyB.label === "goal" && bodyA.label === "ball") {
+  } 
+  else if (bodyB.label === "goal" && bodyA.label === "ball") {
     removeBall(bodyA);
   }
 }
@@ -205,7 +206,7 @@ function isCellOccupied(x, y) {
   }
 
   // check goal
-    if (goal) {
+  if (goal) {
     const cells = getOccupiedCells(goal.body);
     for (let cell of cells) {
       if (cell.x === x && cell.y === y) {
@@ -285,7 +286,7 @@ function deleteCell(x, y) {
     }
   }
   
-  // check goal
+  // delete goal
   if (goal) {
     const cells = getOccupiedCells(goal.body);
     for (let cell of cells) {
@@ -451,7 +452,7 @@ class Contraption {
 
 class Trampoline extends Contraption {
   constructor(x, y, angle) {
-    super(x, y, angle)
+    super(x, y, angle);
     this.color = "purple";
     this.stroke = "black";
     this.width = CELL_SIZE;
@@ -493,10 +494,14 @@ class Trampoline extends Contraption {
         break;
       }
     }
-    if (!ball) return;
+    if (!ball) {
+      return;
+    }
 
     // Make sure this trampoline is involved
-    if (this.body !== bodyA && this.body !== bodyB) return;
+    if (this.body !== bodyA && this.body !== bodyB) {
+      return;
+    }
 
     // Collision physics
     let angle = this.body.angle; 
@@ -522,7 +527,7 @@ class Fan extends Contraption {
     this.body = Bodies.rectangle(this.x, this.y, this.width, this.height, options);
     Matter.Body.setAngle(this.body, this.angle);
 
-    Composite.add(engine.world, this.body)
+    Composite.add(engine.world, this.body);
   }
 
   rotate() {
@@ -534,7 +539,7 @@ class Fan extends Contraption {
     const fanPos = this.body.position;
     const angle = this.body.angle;
 
-    // Fan endpoints in world space
+    // Fan endpoints in world space (stackoverflow helped with the vector math here)
     const left = Matter.Vector.add(fanPos, Matter.Vector.rotate({ x: -this.width/2, y: 0 }, angle));
     const right = Matter.Vector.add(fanPos, Matter.Vector.rotate({ x: this.width/2, y: 0 }, angle));
 
@@ -546,35 +551,39 @@ class Fan extends Contraption {
     // Vector from left end to ball
     const ballVec = Matter.Vector.sub(ball.body.position, left);
 
-    // Project ball onto fan width
+    // Project ball onto fan width 
     const proj = Matter.Vector.dot(ballVec, fanDir);
 
     // Check if ball is within fan width
-    if (proj < 0 || proj > fanLen) return;
+    if (proj < 0 || proj > fanLen) {
+      return;
+    }
 
-    // Perpendicular distance to fan line (stackoverflow helped with the vector math here)
+    // Perpendicular distance to fan line 
     const perp = ballVec.x * fanDir.y - ballVec.y * fanDir.x;
 
     // Only apply force if ball is on the active side (perp > 0)
-    if (perp <= 0) return;
+    if (perp <= 0) {
+      return;
+    }
 
-    // raycasting to detect if other bodies are in the way
+    // raycasting to detect if other bodies are in the way (thanks stackoverflow!)
     const fanForward = { x: fanDir.y, y: -fanDir.x };
     const rayEnd = {
-        x: fanPos.x + fanForward.x * Math.abs(perp),
-        y: fanPos.y + fanForward.y * Math.abs(perp)
+      x: fanPos.x + fanForward.x * Math.abs(perp),
+      y: fanPos.y + fanForward.y * Math.abs(perp)
     };
 
     const blockers = Matter.Query.ray(
-        Matter.Composite.allBodies(engine.world),
-        fanPos,
-        rayEnd
+      Matter.Composite.allBodies(engine.world),
+      fanPos,
+      rayEnd
     );
 
     for (let hit of blockers) {
-        if (hit.body !== this.body && hit.body !== ball.body) {
-            return; // airflow blocked
-        }
+      if (hit.body !== this.body && hit.body !== ball.body) {
+        return; // airflow blocked
+      }
     }
 
     // Strength falls off with distance from fan
@@ -609,18 +618,17 @@ class Fan extends Contraption {
     let flowLength = CELL_SIZE * 3;
 
     let speed = 2;
-    let offset = (frameCount * speed) % 20;
+    let offset = frameCount * speed % 20;
 
     for (let i = 0; i < numStreams; i++) {
       let x = -this.width / 2 + i * spacing;
 
       for (let y = -this.height/2 - offset; y > -flowLength; y -= 20) {
+        
         // fade based on distance from fan
+        let fade = 150 * map(y, -this.height/2, -flowLength, 1, 0);
 
-        let t = map(y, -this.height/2, -flowLength, 1, 0);
-        let alpha = 150 * t;
-
-        stroke(0, 150, 255, alpha);
+        stroke(0, 150, 255, fade);
 
         // shaft
         line(x, y, x, y - CELL_SIZE / 5);
@@ -636,7 +644,7 @@ class Fan extends Contraption {
 
 class Conveyor extends Contraption {
   constructor(x, y, angle) {
-    super(x, y, angle)
+    super(x, y, angle);
     this.color = "green";
     this.stroke = "black";
     this.width = CELL_SIZE * 3;
@@ -672,10 +680,10 @@ class Conveyor extends Contraption {
 
     for (let b of ballArray) {
       if (b.conveyorOn) {
-          Matter.Body.applyForce(b.body, b.body.position, forceVector);
-        }
+        Matter.Body.applyForce(b.body, b.body.position, forceVector);
       }
     }
+  }
 
   display() {
     let position = this.body.position;
@@ -703,7 +711,7 @@ class Conveyor extends Contraption {
     fill(255);
 
     let spacing = CELL_SIZE;
-    let offset = (frameCount * 1.5) % spacing;
+    let offset = frameCount * 1.5 % spacing;
 
     for (let x = -this.width/2 + offset; x < this.width/2; x += spacing) {
       line(x - CELL_SIZE / 5, 0, x + CELL_SIZE / 5, 0);     
