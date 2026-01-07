@@ -243,10 +243,12 @@ function toggleCell(x, y) {
   }
   else if (setting === "fan") {
     let theContr = new Fan(x, y, 0);
+    deleteOverlaps(theContr.body);
     contrArray.push(theContr);
   }
   else if (setting === "conveyor") {
     let theContr = new Conveyor(x, y, 0);
+    deleteOverlaps(theContr.body);
     contrArray.push(theContr);
   }
   else if (setting === "goal") {
@@ -304,6 +306,13 @@ function deleteCell(x, y) {
   }
 }
 
+function deleteOverlaps(body) {
+  const cells = getOccupiedCells(body);
+  for (let cell of cells) {
+    deleteCell(cell.x, cell.y);
+  }
+}
+
 function deleteOutOfBounds() {
   for (let i = ballArray.length - 1; i >= 0; i--) { // delete if ball goes out of bounds
     let b = ballArray[i];
@@ -356,7 +365,7 @@ class Ball {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.radius = CELL_SIZE / 2;
+    this.radius = CELL_SIZE / 2 - CELL_SIZE / 5;
     this.color = "red";
     let options = { restitution: 0.5 };
     this.body = Bodies.circle(this.x, this.y, this.radius, options);
@@ -491,7 +500,7 @@ class Trampoline extends Contraption {
     super(x, y, angle);
     this.color = "purple";
     this.stroke = "black";
-    this.width = CELL_SIZE;
+    this.width = CELL_SIZE - CELL_SIZE / 5;
     this.height = CELL_SIZE / 5;
     let options = { isStatic: true };
     this.body = Bodies.rectangle(this.x, this.y, this.width, this.height, options);
@@ -556,7 +565,7 @@ class Fan extends Contraption {
     super(x, y, angle);
     this.color = "grey";
     this.stroke = "black";
-    this.width = CELL_SIZE * 2;
+    this.width = CELL_SIZE * 2 - 2 * CELL_SIZE / 5;
     this.height = CELL_SIZE / 5;
     this.strength = 0.025;
     let options = { isStatic: true};
@@ -683,7 +692,7 @@ class Conveyor extends Contraption {
     super(x, y, angle);
     this.color = "green";
     this.stroke = "black";
-    this.width = CELL_SIZE * 3;
+    this.width = CELL_SIZE * 3 - 2 * CELL_SIZE / 5;
     this.height = CELL_SIZE / 5;
     this.sideForce = 0.0025;
     let options = { isStatic: true };
