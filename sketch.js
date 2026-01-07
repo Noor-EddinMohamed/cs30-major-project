@@ -3,7 +3,7 @@
 // January 19 2026
 
 // matter.js aliases
-const { Engine, Runner, Bodies, Composite, Query } = Matter;
+const { Engine, Runner, Bodies, Composite, Query, Vector } = Matter;
 
 // matter.js variables
 let engine;
@@ -336,8 +336,6 @@ function canRotate(body, allBodies) {
 }
 
 function showGrid() {
-  stroke("black");
-  strokeWeight(1);
   noFill();
   rectMode(CENTER);
 
@@ -400,7 +398,7 @@ class Block extends Wall {
   constructor(x, y, angle) {
     super(x, y, angle);
     this.width = CELL_SIZE;
-    this.body = Bodies.rectangle(this.x, this.y, this.width, this.width, options);
+    this.body = Bodies.rectangle(this.x, this.y, this.width, this.width, this.options);
 
     Composite.add(engine.world, this.body);
   }
@@ -419,17 +417,24 @@ class Ramp extends Wall {
     super(x, y, angle);
     
     let vertices = [];
-    vertices[0] = (0, CELL_SIZE);
-    vertices[1] = (CELL_SIZE, CELL_SIZE);
-    vertices[2] = (CELL_SIZE, 0);
+    vertices[0] = Vector.create(0, CELL_SIZE);
+    vertices[1] = Vector.create(CELL_SIZE, CELL_SIZE);
+    vertices[2] = Vector.create(CELL_SIZE, 0);
 
-    this.body = Bodies.fromVertices(x, y, vertices, options);
+    this.body = Bodies.fromVertices(this.x, this.y, vertices, this.options);
+    Composite.add(engine.world, this.body);
   }
 
   display() {
     push();
     fill(this.color);
-    triangle(0, CELL_SIZE, CELL_SIZE, CELL_SIZE, CELL_SIZE, 0);
+    beginShape();
+
+    for (let v of this.body.vertices) {
+      vertex(v.x, v.y);
+    }
+
+    endShape(CLOSE);    
     pop();
   }
 }
@@ -499,11 +504,11 @@ class Trampoline extends Contraption {
   constructor(x, y, angle) {
     super(x, y, angle);
     this.color = "purple";
-    this.stroke = "black";
     this.width = CELL_SIZE - CELL_SIZE / 5;
     this.height = CELL_SIZE / 5;
     let options = { isStatic: true };
-    this.body = Bodies.rectangle(this.x, this.y, this.width, this.height, options);
+    this.body = Bodies.rectangle(this.x, this.y, this.width, this.height, options);    
+
     Matter.Body.setAngle(this.body, this.angle);
 
     Composite.add(engine.world, this.body);
@@ -522,7 +527,6 @@ class Trampoline extends Contraption {
     rotate(angle);
     rectMode(CENTER);
     fill(this.color);
-    stroke(this.stroke);
     rect(0, 0, this.width, this.height);
     pop();
   }
@@ -564,7 +568,6 @@ class Fan extends Contraption {
   constructor(x, y, angle) {
     super(x, y, angle);
     this.color = "grey";
-    this.stroke = "black";
     this.width = CELL_SIZE * 2 - 2 * CELL_SIZE / 5;
     this.height = CELL_SIZE / 5;
     this.strength = 0.025;
@@ -651,13 +654,10 @@ class Fan extends Contraption {
     translate(pos.x, pos.y);
     rotate(angle);
     rectMode(CENTER);
-    stroke(this.stroke);
     fill(this.color);
     rect(0, 0, this.width, this.height);
 
     // airflow arrows
-    strokeWeight(2);
-
     let numStreams = 6;
     let spacing = this.width / (numStreams - 1);
     let flowLength = CELL_SIZE * 3;
@@ -691,7 +691,6 @@ class Conveyor extends Contraption {
   constructor(x, y, angle) {
     super(x, y, angle);
     this.color = "green";
-    this.stroke = "black";
     this.width = CELL_SIZE * 3 - 2 * CELL_SIZE / 5;
     this.height = CELL_SIZE / 5;
     this.sideForce = 0.0025;
@@ -743,10 +742,7 @@ class Conveyor extends Contraption {
     rotate(angle);
     rectMode(CENTER);
     fill(this.color);
-    stroke(this.stroke);
     rect(0, 0, this.width, this.height);
-    stroke(0);
-    strokeWeight(1);
 
     // drawing segment lines
     let numSegments = this.width / CELL_SIZE;
@@ -756,9 +752,8 @@ class Conveyor extends Contraption {
     }
 
     // arrows
-    stroke(255);
-    strokeWeight(2);
-    fill(255);
+    stroke("white");
+    fill("white");
 
     let spacing = CELL_SIZE;
     let offset = frameCount * 1.5 % spacing;
