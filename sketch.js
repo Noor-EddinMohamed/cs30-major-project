@@ -17,6 +17,7 @@ let rows;
 let cols;
 
 let goal;
+let lastPlaced;
 
 let wallArray = [];
 let ballArray = [];
@@ -85,6 +86,7 @@ function draw() {
   }
   for (let someBall of ballArray) {
     someBall.display();
+    applyRampAssist(someBall);
   }
   for (let someContr of contrArray) {
     someContr.display();
@@ -149,13 +151,13 @@ function keyPressed() {
     setting = "goal"; 
   }
   else if (keyCode === LEFT_ARROW) {
-    if (contrArray.length > 0) {
-      contrArray[contrArray.length - 1].rotateLeft();
+    if (lastPlaced && lastPlaced.rotateLeft) {
+      lastPlaced.rotateLeft();
     }
   }
   else if (keyCode === RIGHT_ARROW) {
-    if (contrArray.length > 0) {
-      contrArray[contrArray.length - 1].rotateRight();
+    if (lastPlaced && lastPlaced.rotateRight) {
+      lastPlaced.rotateRight();
     }
   }
 }
@@ -232,24 +234,29 @@ function toggleCell(x, y) {
   if (setting === "ramp") {
     let theWall = new Ramp(x, y, 0);
     wallArray.push(theWall);
+    lastPlaced = theWall;
   }
   else if (setting === "ball") {
     let theBall = new Ball(x, y);
     ballArray.push(theBall);
+    lastPlaced = theBall;
   }
   else if (setting === "trampoline") {
     let theContr = new Trampoline(x, y, 0);
     contrArray.push(theContr);
+    lastPlaced = theContr; 
   }
   else if (setting === "fan") {
     let theContr = new Fan(x, y, 0);
     deleteOverlaps(theContr.body);
     contrArray.push(theContr);
+    lastPlaced = theContr;
   }
   else if (setting === "conveyor") {
     let theContr = new Conveyor(x, y, 0);
     deleteOverlaps(theContr.body);
     contrArray.push(theContr);
+    lastPlaced = theContr;
   }
   else if (setting === "goal") {
     // delete old goal if it exists
@@ -335,6 +342,41 @@ function canRotate(body, allBodies) {
   return collisions.length === 0;
 }
 
+function applyRampAssist(ball) {
+  // prevents jitter caused by many collisions of chaining ramps (aphysical)
+  for (let w of wallArray) {
+    if (!(w instanceof Ramp)) continue;
+
+    const collisions = Matter.Query.collides(ball.body, [w.body]);
+    if (collisions.length === 0) continue;
+
+    for (let c of collisions) {
+      // collision normal (points out of the ramp)
+      const normal = c.normal;
+
+      // tangent direction (along the ramp)
+      let tangent = {
+        x: normal.y,
+        y: -normal.x
+      };
+
+      // Make sure tangent points downhill
+      if (tangent.y < 0) {
+        tangent.x *= -1;
+        tangent.y *= -1;
+      }
+
+      const strength = 0.0008;
+
+      Matter.Body.applyForce(ball.body, ball.body.position, {
+        x: tangent.x * strength,
+        y: tangent.y * strength
+      });
+    }
+  }
+}
+
+
 function showGrid() {
   noFill();
   rectMode(CENTER);
@@ -365,7 +407,7 @@ class Ball {
     this.y = y;
     this.radius = CELL_SIZE / 2 - CELL_SIZE / 5;
     this.color = "red";
-    let options = { restitution: 0.5 };
+    let options = { restitution: 0.5, frictionAir: 0 };
     this.body = Bodies.circle(this.x, this.y, this.radius, options);
     this.body.label = "ball";
 
@@ -390,7 +432,7 @@ class Wall {
     this.y = y;
     this.angle = angle;
     this.color = "black";
-    this.options = { isStatic: true };
+    this.options = { isStatic: true,  friction: 0, frictionStatic: 0};
   }
 }
 
@@ -413,15 +455,66 @@ class Block extends Wall {
 }
 
 class Ramp extends Wall {
-  constructor(x, y, angle) {
-    super(x, y, angle);
-    
-    let vertices = [];
-    vertices[0] = Vector.create(0, CELL_SIZE);
-    vertices[1] = Vector.create(CELL_SIZE, CELL_SIZE);
-    vertices[2] = Vector.create(CELL_SIZE, 0);
+  constructor(cellX, cellY, angleIndex = 0) {
+    // angleIndex: 0 = 0, 1 = 90, 2 = 180, 3 = 270
+    super(cellX, cellY, angleIndex * Math.PI / 2);
 
-    this.body = Bodies.fromVertices(this.x, this.y, vertices, this.options);
+    this.cellCenter = { x: cellX, y: cellY };
+    this.angleIndex = angleIndex; 
+
+    // Build the body
+    this.buildBody();
+  }
+
+  buildBody() {
+    // creates new triangle for rotation purposes
+    let vertices = [
+      { x: 0, y: CELL_SIZE },       // bottom-left
+      { x: CELL_SIZE, y: CELL_SIZE }, // bottom-right
+      { x: CELL_SIZE, y: 0 }        // top-right
+    ];
+
+    // Rotate vertices by 90° increments
+    const angle = this.angleIndex * Math.PI / 2;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    let rotated = vertices.map(v => ({
+      x: v.x * cos - v.y * sin,
+      y: v.x * sin + v.y * cos
+    }));
+
+    // Compute triangle centroid
+    const centroid = {
+      x: (rotated[0].x + rotated[1].x + rotated[2].x) / 3,
+      y: (rotated[0].y + rotated[1].y + rotated[2].y) / 3
+    };
+
+    // Shift vertices so centroid = (0,0)
+    let shiftedVertices = rotated.map(v => ({
+      x: v.x - centroid.x,
+      y: v.y - centroid.y
+    }));
+
+    // Remove old body if exists
+    if (this.body) {
+      Composite.remove(engine.world, this.body);
+    }
+
+    // Create new body
+    this.body = Bodies.fromVertices(0, 0, shiftedVertices, this.options);
+    
+    // Compute diagonal midpoint (bottom-left to top-right)
+    const diagMid = {
+      x: (rotated[0].x + rotated[2].x) / 2 - centroid.x,
+      y: (rotated[0].y + rotated[2].y) / 2 - centroid.y
+    };
+
+    // Place the body so diagonal midpoint is at cell center
+    Matter.Body.setPosition(this.body, {
+      x: this.cellCenter.x + (CELL_SIZE / 2 - diagMid.x - CELL_SIZE / 2),
+      y: this.cellCenter.y + (CELL_SIZE / 2 - diagMid.y - CELL_SIZE / 2)
+    });
+
     Composite.add(engine.world, this.body);
   }
 
@@ -429,13 +522,21 @@ class Ramp extends Wall {
     push();
     fill(this.color);
     beginShape();
-
     for (let v of this.body.vertices) {
       vertex(v.x, v.y);
     }
-
-    endShape(CLOSE);    
+    endShape(CLOSE);
     pop();
+  }
+
+  rotateLeft() {
+    this.angleIndex = (this.angleIndex + 3) % 4; 
+    this.buildBody();
+  }
+
+  rotateRight() {
+    this.angleIndex = (this.angleIndex + 1) % 4; 
+    this.buildBody();
   }
 }
 
