@@ -345,10 +345,14 @@ function canRotate(body, allBodies) {
 function applyRampAssist(ball) {
   // prevents jitter caused by many collisions of chaining ramps (aphysical)
   for (let w of wallArray) {
-    if (!(w instanceof Ramp)) continue;
+    if (!(w instanceof Ramp)) {
+      continue;
+    }
 
     const collisions = Matter.Query.collides(ball.body, [w.body]);
-    if (collisions.length === 0) continue;
+    if (collisions.length === 0) {
+      continue;
+    }
 
     for (let c of collisions) {
       // collision normal (points out of the ramp)
@@ -671,7 +675,7 @@ class Fan extends Contraption {
     this.color = "grey";
     this.width = CELL_SIZE * 2 - 2 * CELL_SIZE / 5;
     this.height = CELL_SIZE / 5;
-    this.strength = 0.025;
+    this.strength = 0.01;
     let options = { isStatic: true};
     this.body = Bodies.rectangle(this.x, this.y, this.width, this.height, options);
     Matter.Body.setAngle(this.body, this.angle);
