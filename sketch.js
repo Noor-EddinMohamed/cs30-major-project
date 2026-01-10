@@ -152,7 +152,7 @@ function keyPressed() {
   if (key === "b") {
     setting = "block";
   }
-  if (key === "r") {
+  else if (key === "r") {
     setting = "ramp";
   }
   else if (key === "a") {
@@ -401,7 +401,7 @@ function applyRampAssist(ball) {
         tangent.y *= -1;
       }
 
-      const strength = 0.0008;
+      const strength = 0.0025;
 
       Matter.Body.applyForce(ball.body, ball.body.position, {
         x: tangent.x * strength,
