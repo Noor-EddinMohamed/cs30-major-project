@@ -12,9 +12,13 @@ let runner;
 
 // 2d array variables
 let theGrid;
-const CELL_SIZE = 50;
+const GRID_COLS = 16;
+const GRID_ROWS = 9;
+let cellSize;
 let rows;
 let cols;
+let gridOffsetX;
+let gridOffsetY;
 
 let goal;
 let lastPlaced;
@@ -27,6 +31,12 @@ let setting = "block";
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
+    cellSize = Math.floor(
+    Math.min(width / GRID_COLS, height / GRID_ROWS)
+  );
+
+  cols = GRID_COLS;
+  rows = GRID_ROWS;
 
   // matter.js setup
   engine = Engine.create(); // creates engine
@@ -36,8 +46,11 @@ function setup() {
   Runner.run(runner, engine); 
 
   // 2d array setup
-  cols = Math.floor(width / CELL_SIZE);
-  rows = Math.floor(height / CELL_SIZE);
+  cols = GRID_COLS;
+  rows = GRID_ROWS;
+
+  gridOffsetX = (width  - cols * cellSize) / 2;
+  gridOffsetY = (height - rows * cellSize) / 2;
 
   theGrid = generateEmptyGrid(cols, rows);
 
@@ -104,6 +117,13 @@ function draw() {
   }
 }
 
+function cellToPixel(col, row) {
+  return {
+    x: gridOffsetX + col * cellSize + cellSize / 2,
+    y: gridOffsetY + row * cellSize + cellSize / 2
+  };
+}
+
 function removeBall(ballBody) {
   for (let i = ballArray.length - 1; i >= 0; i--) {
     if (ballArray[i].body === ballBody) {
@@ -115,17 +135,17 @@ function removeBall(ballBody) {
 }
 
 function mousePressed() {
-  let col = Math.floor(mouseX / CELL_SIZE);
-  let row = Math.floor(mouseY / CELL_SIZE);
+  let col = Math.floor((mouseX - gridOffsetX) / cellSize);
+  let row = Math.floor((mouseY - gridOffsetY) / cellSize);
 
-  let x = col * CELL_SIZE + CELL_SIZE / 2;
-  let y = row * CELL_SIZE + CELL_SIZE / 2;
+  let x = gridOffsetX + col * cellSize + cellSize / 2;
+  let y = gridOffsetY + row * cellSize + cellSize / 2;
 
   if (!isInsideGrid(col, row)) {
     return;
   }
 
-  toggleCell(x, y);
+  toggleCell(col, row);
 }
 
 function keyPressed() {
@@ -179,29 +199,26 @@ function getOccupiedCells(body) {
 
   const occupied = [];
 
-  const startCol = Math.floor(minX / CELL_SIZE);
-  const endCol   = Math.floor((maxX - 1) / CELL_SIZE);
-  const startRow = Math.floor(minY / CELL_SIZE);
-  const endRow   = Math.floor((maxY - 1) / CELL_SIZE);
+  const startCol = Math.floor((minX - gridOffsetX) / cellSize);
+  const endCol   = Math.floor((maxX - gridOffsetX - 1) / cellSize);
+  const startRow = Math.floor((minY - gridOffsetY) / cellSize);
+  const endRow   = Math.floor((maxY - gridOffsetY - 1) / cellSize);
 
   for (let col = startCol; col <= endCol; col++) {
     for (let row = startRow; row <= endRow; row++) {
-      occupied.push({
-        x: col * CELL_SIZE + CELL_SIZE / 2,
-        y: row * CELL_SIZE + CELL_SIZE / 2
-      });
+      occupied.push({ col, row });
     }
   }
 
   return occupied;
 }
 
-function isCellOccupied(x, y) {
+function isCellOccupied(col, row) {
   // check walls
   for (let w of wallArray) {
     const cells = getOccupiedCells(w.body);
     for (let c of cells) {
-      if (c.x === x && c.y === y) {
+      if (c.col === col && c.row === row) {
         return true;
       }
     }
@@ -211,7 +228,8 @@ function isCellOccupied(x, y) {
   for (let c of contrArray) {
     const cells = getOccupiedCells(c.body);
     for (let cell of cells) {
-      if (cell.x === x && cell.y === y) {
+      if (cell.col === col && cell.row === row) {
+
         return true;
       }
     }
@@ -221,7 +239,8 @@ function isCellOccupied(x, y) {
   if (goal) {
     const cells = getOccupiedCells(goal.body);
     for (let cell of cells) {
-      if (cell.x === x && cell.y === y) {
+      if (cell.col === col && cell.row === row) {
+
         return true;
       }
     }
@@ -230,39 +249,39 @@ function isCellOccupied(x, y) {
   return false;
 }
 
-function toggleCell(x, y) {
-  if (isCellOccupied(x, y)) { // delete if something already on that cell
-    deleteCell(x, y);
+function toggleCell(col, row) {
+  if (isCellOccupied(col, row)) { // delete if something already on that cell
+    deleteCell(col, row);
     return;
   }
   
   if (setting === "block") {
-    let theWall = new Block(x, y, 0);
+    let theWall = new Block(col, row, 0);
     wallArray.push(theWall);
   }
   if (setting === "ramp") {
-    let theWall = new Ramp(x, y, 0);
+    let theWall = new Ramp(col, row, 0);
     wallArray.push(theWall);
     lastPlaced = theWall;
   }
   else if (setting === "ball") {
-    let theBall = new Ball(x, y);
+    let theBall = new Ball(col, row, 0);
     ballArray.push(theBall);
     lastPlaced = theBall;
   }
   else if (setting === "trampoline") {
-    let theContr = new Trampoline(x, y, 0);
+    let theContr = new Trampoline(col, row, 0);
     contrArray.push(theContr);
     lastPlaced = theContr; 
   }
   else if (setting === "fan") {
-    let theContr = new Fan(x, y, 0);
+    let theContr = new Fan(col, row, 0);
     deleteOverlaps(theContr.body);
     contrArray.push(theContr);
     lastPlaced = theContr;
   }
   else if (setting === "conveyor") {
-    let theContr = new Conveyor(x, y, 0);
+    let theContr = new Conveyor(col, row, 0);
     deleteOverlaps(theContr.body);
     contrArray.push(theContr);
     lastPlaced = theContr;
@@ -276,18 +295,19 @@ function toggleCell(x, y) {
         contrArray.splice(index, 1);
       }
     }
-    goal = new Goal(x, y, CELL_SIZE);
+    goal = new Goal(col, row, cellSize);
   }
 }
 
-function deleteCell(x, y) {
+function deleteCell(col, row) {
   // delete walls
   for (let i = wallArray.length - 1; i >= 0; i--) {
     const w = wallArray[i];
     const cells = getOccupiedCells(w.body);
 
     for (let cell of cells) {
-      if (cell.x === x && cell.y === y) {
+      if (cell.col === col && cell.row === row) {
+
         Composite.remove(engine.world, w.body);
         wallArray.splice(i, 1);
         return;
@@ -301,7 +321,8 @@ function deleteCell(x, y) {
     const cells = getOccupiedCells(c.body);
 
     for (let cell of cells) {
-      if (cell.x === x && cell.y === y) {
+      if (cell.col === col && cell.row === row) {
+
         Composite.remove(engine.world, c.body);
         contrArray.splice(i, 1);
         return;
@@ -313,7 +334,8 @@ function deleteCell(x, y) {
   if (goal) {
     const cells = getOccupiedCells(goal.body);
     for (let cell of cells) {
-      if (cell.x === x && cell.y === y) {
+      if (cell.col === col && cell.row === row) {
+
         Composite.remove(engine.world, goal.body);
         goal = null;
         return;
@@ -325,7 +347,7 @@ function deleteCell(x, y) {
 function deleteOverlaps(body) {
   const cells = getOccupiedCells(body);
   for (let cell of cells) {
-    deleteCell(cell.x, cell.y);
+    deleteCell(cell.col, cell.row);
   }
 }
 
@@ -335,9 +357,9 @@ function deleteOutOfBounds() {
     let pos = b.body.position;
 
     if (
-      pos.y > rows * CELL_SIZE + 200 || 
+      pos.y > rows * cellSize + 200 || 
       pos.x < -200 ||
-      pos.x > cols * CELL_SIZE + 200
+      pos.x > cols * cellSize + 200
     ) {
       Composite.remove(engine.world, b.body);
       ballArray.splice(i, 1);
@@ -396,9 +418,9 @@ function showGrid() {
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
-      let x = col * CELL_SIZE + CELL_SIZE / 2;
-      let y = row * CELL_SIZE + CELL_SIZE / 2;
-      square(x, y, CELL_SIZE);
+      let x = gridOffsetX + col * cellSize + cellSize / 2;
+      let y = gridOffsetY + row * cellSize + cellSize / 2;
+      square(x, y, cellSize);
     }
   }
 }
@@ -415,13 +437,14 @@ function generateEmptyGrid(cols, rows) {
 }
 
 class Ball {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-    this.radius = CELL_SIZE / 2 - CELL_SIZE / 5;
+  constructor(col, row) {
+    this.col = col;
+    this.row = row;
+    this.radius = cellSize / 2 - cellSize / 5;
     this.color = "red";
     let options = { restitution: 0.5, frictionAir: 0 };
-    this.body = Bodies.circle(this.x, this.y, this.radius, options);
+    const { x, y } = cellToPixel(col, row);
+    this.body = Bodies.circle(x, y, this.radius, options);
     this.body.label = "ball";
 
     Composite.add(engine.world, this.body);
@@ -440,9 +463,9 @@ class Ball {
 }
 
 class Wall {
-  constructor(x, y, angle) {
-    this.x = x;
-    this.y = y;
+  constructor(col, row, angle) {
+    this.col = col;
+    this.row = row;
     this.angle = angle;
     this.color = "black";
     this.options = { isStatic: true,  friction: 0, frictionStatic: 0};
@@ -450,19 +473,21 @@ class Wall {
 }
 
 class Block extends Wall {
-  constructor(x, y, angle) {
-    super(x, y, angle);
-    this.width = CELL_SIZE;
-    this.body = Bodies.rectangle(this.x, this.y, this.width, this.width, this.options);
+  constructor(col, row, angle) {
+    super(col, row, angle);
+    this.width = cellSize;
+    const { x, y } = cellToPixel(col, row);
+    this.body = Bodies.rectangle(x, y, this.width, this.width, this.options);
 
     Composite.add(engine.world, this.body);
   }
 
-  display() {    
+  display() {
+    const { x, y } = cellToPixel(this.col, this.row);
     push();
     rectMode(CENTER);
     fill(this.color);
-    square(this.x, this.y, this.width);
+    square(x, y, this.width);
     pop();
   }
 }
@@ -472,7 +497,8 @@ class Ramp extends Wall {
     // angleIndex: 0 = 0, 1 = 90, 2 = 180, 3 = 270
     super(cellX, cellY, angleIndex * Math.PI / 2);
 
-    this.cellCenter = { x: cellX, y: cellY };
+    const { x, y } = cellToPixel(cellX, cellY);
+    this.cellCenter = { x, y };
     this.angleIndex = angleIndex; 
 
     // Build the body
@@ -482,9 +508,9 @@ class Ramp extends Wall {
   buildBody() {
     // creates new triangle for rotation purposes
     let vertices = [
-      { x: 0, y: CELL_SIZE },       // bottom-left
-      { x: CELL_SIZE, y: CELL_SIZE }, // bottom-right
-      { x: CELL_SIZE, y: 0 }        // top-right
+      { x: 0, y: cellSize },       // bottom-left
+      { x: cellSize, y: cellSize }, // bottom-right
+      { x: cellSize, y: 0 }        // top-right
     ];
 
     // Rotate vertices by 90° increments
@@ -524,8 +550,8 @@ class Ramp extends Wall {
 
     // Place the body so diagonal midpoint is at cell center
     Matter.Body.setPosition(this.body, {
-      x: this.cellCenter.x + (CELL_SIZE / 2 - diagMid.x - CELL_SIZE / 2),
-      y: this.cellCenter.y + (CELL_SIZE / 2 - diagMid.y - CELL_SIZE / 2)
+      x: this.cellCenter.x + (cellSize / 2 - diagMid.x - cellSize / 2),
+      y: this.cellCenter.y + (cellSize / 2 - diagMid.y - cellSize / 2)
     });
 
     Composite.add(engine.world, this.body);
@@ -554,31 +580,33 @@ class Ramp extends Wall {
 }
 
 class Goal {
-  constructor(x, y, width) {
-    this.x = x;
-    this.y = y;
+  constructor(col, row, width) {
+    this.col = col;
+    this.row = row;
     this.width = width;
     this.color = "red"; 
     let options = { isStatic: true };
-    this.body = Matter.Bodies.rectangle(this.x, this.y, this.width, this.width, options);
+    const { x, y } = cellToPixel(col, row);
+    this.body = Bodies.rectangle(x, y, this.width, this.width, options);
     this.body.label = "goal";
 
     Matter.Composite.add(engine.world, this.body);
   }
 
   display() {
+    const { x, y } = cellToPixel(this.col, this.row);
     push();
     rectMode(CENTER);
     fill(this.color);
-    square(this.x, this.y, this.width);
+    square(x, y, this.width);
     pop();
   }
 }
 
 class Contraption {
-  constructor(x, y, angle) {
-    this.x = x;
-    this.y = y;
+  constructor(col, row, angle) {
+    this.col = col;
+    this.row = row;
     this.angle = angle;
   }
 
@@ -615,13 +643,14 @@ class Contraption {
 }
 
 class Trampoline extends Contraption {
-  constructor(x, y, angle) {
-    super(x, y, angle);
+  constructor(col, row, angle) {
+    super(col, row, angle);
     this.color = "purple";
-    this.width = CELL_SIZE - CELL_SIZE / 5;
-    this.height = CELL_SIZE / 5;
+    this.width = cellSize - cellSize / 5;
+    this.height = cellSize / 5;
     let options = { isStatic: true };
-    this.body = Bodies.rectangle(this.x, this.y, this.width, this.height, options);    
+    const { x, y } = cellToPixel(col, row);
+    this.body = Bodies.rectangle(x, y, this.width, this.height, options);
 
     Matter.Body.setAngle(this.body, this.angle);
 
@@ -679,14 +708,15 @@ class Trampoline extends Contraption {
 }
 
 class Fan extends Contraption {
-  constructor(x, y, angle) {
-    super(x, y, angle);
+  constructor(col, row, angle) {
+    super(col, row, angle);
     this.color = "grey";
-    this.width = CELL_SIZE * 2 - 2 * CELL_SIZE / 5;
-    this.height = CELL_SIZE / 5;
-    this.strength = 0.01;
+    this.width = cellSize * 2 - 2 * cellSize / 5;
+    this.height = cellSize / 5;
+    this.strength = 0.025;
     let options = { isStatic: true};
-    this.body = Bodies.rectangle(this.x, this.y, this.width, this.height, options);
+    const { x, y } = cellToPixel(col, row);
+    this.body = Bodies.rectangle(x, y, this.width, this.height, options);
     Matter.Body.setAngle(this.body, this.angle);
 
     Composite.add(engine.world, this.body);
@@ -774,7 +804,7 @@ class Fan extends Contraption {
     // airflow arrows
     let numStreams = 6;
     let spacing = this.width / (numStreams - 1);
-    let flowLength = CELL_SIZE * 3;
+    let flowLength = cellSize * 3;
 
     let speed = 2;
     let offset = frameCount * speed % 20;
@@ -790,11 +820,11 @@ class Fan extends Contraption {
         stroke(0, 150, 255, fade);
 
         // shaft
-        line(x, y, x, y - CELL_SIZE / 5);
+        line(x, y, x, y - cellSize / 5);
 
         // arrow head
-        line(x, y - CELL_SIZE / 5, x - CELL_SIZE / 12.5, y - CELL_SIZE / 12.5);
-        line(x, y - CELL_SIZE / 5, x + CELL_SIZE / 12.5, y - CELL_SIZE / 12.5);
+        line(x, y - cellSize / 5, x - cellSize / 12.5, y - cellSize / 12.5);
+        line(x, y - cellSize / 5, x + cellSize / 12.5, y - cellSize / 12.5);
       }
     }
     pop();
@@ -802,14 +832,15 @@ class Fan extends Contraption {
 }
 
 class Conveyor extends Contraption {
-  constructor(x, y, angle) {
-    super(x, y, angle);
+  constructor(col, row, angle) {
+    super(col, row, angle);
     this.color = "green";
-    this.width = CELL_SIZE * 3 - 2 * CELL_SIZE / 5;
-    this.height = CELL_SIZE / 5;
+    this.width = cellSize * 3 - 2 * cellSize / 5;
+    this.height = cellSize / 5;
     this.sideForce = 0.0025;
     let options = { isStatic: true };
-    this.body = Bodies.rectangle(this.x, this.y, this.width, this.height, options);
+    const { x, y } = cellToPixel(col, row);
+    this.body = Bodies.rectangle(x, y, this.width, this.height, options);
     this.body.label = "conveyor";
     Matter.Body.setAngle(this.body, this.angle);
 
@@ -859,9 +890,9 @@ class Conveyor extends Contraption {
     rect(0, 0, this.width, this.height);
 
     // drawing segment lines
-    let numSegments = this.width / CELL_SIZE;
+    let numSegments = this.width / cellSize;
     for (let i = 1; i < numSegments; i++) {
-      let x = -this.width / 2 + i * CELL_SIZE;
+      let x = -this.width / 2 + i * cellSize;
       line(x, -this.height / 2, x, this.height / 2);
     }
 
@@ -869,13 +900,13 @@ class Conveyor extends Contraption {
     stroke("white");
     fill("white");
 
-    let spacing = CELL_SIZE;
+    let spacing = cellSize;
     let offset = frameCount * 1.5 % spacing;
 
     for (let x = -this.width/2 + offset; x < this.width/2; x += spacing) {
-      line(x - CELL_SIZE / 5, 0, x + CELL_SIZE / 5, 0);     
-      line(x + CELL_SIZE / 5, 0, x + CELL_SIZE / 12.5, -CELL_SIZE / 12.5);    
-      line(x + CELL_SIZE / 5, 0, x + CELL_SIZE / 12.5,  CELL_SIZE / 12.5);
+      line(x - cellSize / 5, 0, x + cellSize / 5, 0);     
+      line(x + cellSize / 5, 0, x + cellSize / 12.5, -cellSize / 12.5);    
+      line(x + cellSize / 5, 0, x + cellSize / 12.5,  cellSize / 12.5);
     }
 
     pop();
