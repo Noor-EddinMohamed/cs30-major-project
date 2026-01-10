@@ -168,12 +168,21 @@ function isInsideGrid(col, row) {
 
 function getOccupiedCells(body) {
   const bounds = body.bounds;
+
+  // buffer to prevent spillover into other cell bugs
+  const OFFSET = 0.001;
+
+  const minX = bounds.min.x + OFFSET;
+  const maxX = bounds.max.x - OFFSET;
+  const minY = bounds.min.y + OFFSET;
+  const maxY = bounds.max.y - OFFSET;
+
   const occupied = [];
 
-  const startCol = Math.floor(bounds.min.x / CELL_SIZE);
-  const endCol   = Math.floor((bounds.max.x - 1) / CELL_SIZE);
-  const startRow = Math.floor(bounds.min.y / CELL_SIZE);
-  const endRow   = Math.floor((bounds.max.y - 1) / CELL_SIZE);
+  const startCol = Math.floor(minX / CELL_SIZE);
+  const endCol   = Math.floor((maxX - 1) / CELL_SIZE);
+  const startRow = Math.floor(minY / CELL_SIZE);
+  const endRow   = Math.floor((maxY - 1) / CELL_SIZE);
 
   for (let col = startCol; col <= endCol; col++) {
     for (let row = startRow; row <= endRow; row++) {
