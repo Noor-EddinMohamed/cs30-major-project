@@ -31,7 +31,7 @@ let setting = "block";
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-    cellSize = Math.floor(
+  cellSize = Math.floor(
     Math.min(width / GRID_COLS, height / GRID_ROWS)
   );
 
@@ -357,9 +357,10 @@ function deleteOutOfBounds() {
     let pos = b.body.position;
 
     if (
-      pos.y > rows * cellSize + 200 || 
-      pos.x < -200 ||
-      pos.x > cols * cellSize + 200
+      pos.y > rows * cellSize + gridOffsetY || 
+      pos.x < gridOffsetX ||
+      pos.x > cols * cellSize + gridOffsetX ||
+      pos.y < gridOffsetY
     ) {
       Composite.remove(engine.world, b.body);
       ballArray.splice(i, 1);
@@ -401,7 +402,7 @@ function applyRampAssist(ball) {
         tangent.y *= -1;
       }
 
-      const strength = 0.0025;
+      const strength = 0.005;
 
       Matter.Body.applyForce(ball.body, ball.body.position, {
         x: tangent.x * strength,
@@ -773,14 +774,14 @@ class Fan extends Contraption {
     );
 
     for (let hit of blockers) {
-      if (hit.body !== this.body && hit.body !== ball.body) {
+      if (hit.bodyA !== this.body && hit.bodyA !== ball.body) {
         return; // airflow blocked
       }
     }
 
     // Strength falls off with distance from fan
     const distance = Math.abs(perp);
-    const strength = this.strength / (distance * 0.05 + 1);
+    const strength = this.strength / (distance * 0.025 + 1);
 
     // Force vector along fan’s forward direction (perpendicular to fan width)
     const force = {
