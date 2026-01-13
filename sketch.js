@@ -29,6 +29,202 @@ let contrArray = [];
 
 let setting = "block";
 
+// level data
+const LEVEL_1 = {
+  "walls": [
+    {
+      "type": "ramp",
+      "col": 1,
+      "row": 1,
+      "angleIndex": 1
+    },
+    {
+      "type": "ramp",
+      "col": 2,
+      "row": 2,
+      "angleIndex": 1
+    },
+    {
+      "type": "block",
+      "col": 3,
+      "row": 3,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 4,
+      "row": 3,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 5,
+      "row": 3,
+      "angle": 0
+    },
+    {
+      "type": "ramp",
+      "col": 6,
+      "row": 3,
+      "angleIndex": 1
+    },
+    {
+      "type": "ramp",
+      "col": 7,
+      "row": 4,
+      "angleIndex": 1
+    },
+    {
+      "type": "block",
+      "col": 8,
+      "row": 5,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 9,
+      "row": 5,
+      "angle": 0
+    },
+    {
+      "type": "ramp",
+      "col": 10,
+      "row": 5,
+      "angleIndex": 1
+    },
+    {
+      "type": "block",
+      "col": 7,
+      "row": 5,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 6,
+      "row": 5,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 6,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 5,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 5,
+      "row": 5,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 4,
+      "row": 5,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 4,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 3,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 3,
+      "row": 5,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 2,
+      "row": 5,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 2,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 1,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 1,
+      "row": 5,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 1,
+      "row": 3,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 1,
+      "row": 2,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 2,
+      "row": 3,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 9,
+      "row": 8,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 8,
+      "row": 8,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 7,
+      "row": 8,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 6,
+      "row": 8,
+      "angle": 0
+    },
+    {
+      "type": "ramp",
+      "col": 6,
+      "row": 7,
+      "angleIndex": 1
+    }
+  ],
+  "goal": {
+    "col": 2,
+    "row": 6
+  }
+}
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   cellSize = Math.floor(
@@ -60,32 +256,72 @@ function setup() {
       handleCollision(pair);
     }
   });
+
+  loadLevel(LEVEL_1);
 }
 
-function handleCollision(pair) {
-  let bodyA = pair.bodyA;
-  let bodyB = pair.bodyB;
+function exportLevel() {
+  const level = {
+    walls: [],
+    goal: null
+  };
 
-  for (let c of contrArray) {
-    if (c.body === bodyA || c.body === bodyB) {
-      if (c.onCollision) {
-        c.onCollision(pair);
-      }
+  // save walls
+  for (let w of wallArray) {
+    if (w instanceof Block) {
+      level.walls.push({
+        type: "block",
+        col: w.col,
+        row: w.row,
+        angle: 0
+      });
+    }
+    else if (w instanceof Ramp) {
+      level.walls.push({
+        type: "ramp",
+        col: w.col,
+        row: w.row,
+        angleIndex: w.angleIndex
+      });
     }
   }
 
-  // conveyors no bounce
-  if (bodyA.label === "ball" && bodyB.label === "conveyor" ||
-      bodyB.label === "ball" && bodyA.label === "conveyor") {
-    pair.restitution = 0;
+  // save goal
+  if (goal) {
+    level.goal = {
+      col: goal.col,
+      row: goal.row
+    };
   }
 
-  // goal collision
-  if (bodyA.label === "goal" && bodyB.label === "ball") {
-    removeBall(bodyB);
-  } 
-  else if (bodyB.label === "goal" && bodyA.label === "ball") {
-    removeBall(bodyA);
+  console.log(JSON.stringify(level, null, 2));
+}
+
+function clearWorld() {
+  for (let b of Composite.allBodies(engine.world)) {
+    Composite.remove(engine.world, b);
+  }
+
+  wallArray = [];
+  contrArray = [];
+  ballArray = [];
+  goal = null;
+}
+
+function loadLevel(level) {
+  clearWorld();
+
+  for (let w of level.walls) {
+    if (w.type === "block") {
+      wallArray.push(new Block(w.col, w.row, 0));
+    }
+    else if (w.type === "ramp") {
+      wallArray.push(new Ramp(w.col, w.row, w.angleIndex));
+    }
+  }
+
+  if (level.goal) {
+    goal = new Goal(level.goal.col, level.goal.row, cellSize);
   }
 }
 
@@ -114,6 +350,33 @@ function draw() {
   }
   if (goal) {
     goal.display();
+  }
+}
+
+function handleCollision(pair) {
+  let bodyA = pair.bodyA;
+  let bodyB = pair.bodyB;
+
+  for (let c of contrArray) {
+    if (c.body === bodyA || c.body === bodyB) {
+      if (c.onCollision) {
+        c.onCollision(pair);
+      }
+    }
+  }
+
+  // conveyors no bounce
+  if (bodyA.label === "ball" && bodyB.label === "conveyor" ||
+      bodyB.label === "ball" && bodyA.label === "conveyor") {
+    pair.restitution = 0;
+  }
+
+  // goal collision
+  if (bodyA.label === "goal" && bodyB.label === "ball") {
+    removeBall(bodyB);
+  } 
+  else if (bodyB.label === "goal" && bodyA.label === "ball") {
+    removeBall(bodyA);
   }
 }
 
@@ -170,6 +433,15 @@ function keyPressed() {
   else if (key === "g") {
     setting = "goal"; 
   }
+  else if (key === "e") {
+    exportLevel();
+  }
+  else if (key === ";") {
+    clearWorld();
+  }
+  else if (key = "1") {
+    loadLevel(LEVEL_1);
+  }
   else if (keyCode === LEFT_ARROW) {
     if (lastPlaced && lastPlaced.rotateLeft) {
       lastPlaced.rotateLeft();
@@ -190,7 +462,7 @@ function getOccupiedCells(body) {
   const bounds = body.bounds;
 
   // buffer to prevent spillover into other cell bugs
-  const OFFSET = 0.001;
+  const OFFSET = cellSize * 0.001;
 
   const minX = bounds.min.x + OFFSET;
   const maxX = bounds.max.x - OFFSET;
@@ -402,7 +674,7 @@ function applyRampAssist(ball) {
         tangent.y *= -1;
       }
 
-      const strength = 0.005;
+      const strength = cellSize * 0.0000125;
 
       Matter.Body.applyForce(ball.body, ball.body.position, {
         x: tangent.x * strength,
@@ -699,7 +971,9 @@ class Trampoline extends Contraption {
     // Collision physics
     let angle = this.body.angle; 
     let incoming = Math.abs(ball.body.velocity.y);
-    let speed = Math.max(15, incoming * 1.2);
+    let baseSpeed = cellSize * 0.25;
+    let speed = Math.max(baseSpeed, incoming * 1.1);
+
 
     Matter.Body.setVelocity(ball.body, {
       x: Math.sin(angle) * speed,
@@ -714,7 +988,7 @@ class Fan extends Contraption {
     this.color = "grey";
     this.width = cellSize * 2 - 2 * cellSize / 5;
     this.height = cellSize / 5;
-    this.strength = 0.025;
+    this.strength = cellSize * 0.0005;
     let options = { isStatic: true};
     const { x, y } = cellToPixel(col, row);
     this.body = Bodies.rectangle(x, y, this.width, this.height, options);
@@ -781,7 +1055,7 @@ class Fan extends Contraption {
 
     // Strength falls off with distance from fan
     const distance = Math.abs(perp);
-    const strength = this.strength / (distance * 0.025 + 1);
+    const strength = this.strength / (distance / cellSize * 10 + 1);
 
     // Force vector along fan’s forward direction (perpendicular to fan width)
     const force = {
@@ -807,13 +1081,13 @@ class Fan extends Contraption {
     let spacing = this.width / (numStreams - 1);
     let flowLength = cellSize * 3;
 
-    let speed = 2;
-    let offset = frameCount * speed % 20;
+    let speed = cellSize * 0.05;
+    let offset = frameCount * speed % (cellSize * 0.5);
 
     for (let i = 0; i < numStreams; i++) {
       let x = -this.width / 2 + i * spacing;
 
-      for (let y = -this.height/2 - offset; y > -flowLength; y -= 20) {
+      for (let y = -this.height/2 - offset; y > -flowLength; y -= cellSize * 0.5) {
         
         // fade based on distance from fan
         let fade = 150 * map(y, -this.height/2, -flowLength, 1, 0);
@@ -838,7 +1112,8 @@ class Conveyor extends Contraption {
     this.color = "green";
     this.width = cellSize * 3 - 2 * cellSize / 5;
     this.height = cellSize / 5;
-    this.sideForce = 0.0025;
+    this.sideForce = cellSize * 0.000025;
+
     let options = { isStatic: true };
     const { x, y } = cellToPixel(col, row);
     this.body = Bodies.rectangle(x, y, this.width, this.height, options);
@@ -902,7 +1177,7 @@ class Conveyor extends Contraption {
     fill("white");
 
     let spacing = cellSize;
-    let offset = frameCount * 1.5 % spacing;
+    let offset = frameCount * cellSize * 0.025 % spacing;
 
     for (let x = -this.width/2 + offset; x < this.width/2; x += spacing) {
       line(x - cellSize / 5, 0, x + cellSize / 5, 0);     
