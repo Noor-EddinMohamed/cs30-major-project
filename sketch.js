@@ -196,7 +196,7 @@ const LEVEL_1 = {
     },
     {
       "type": "block",
-      "col": 8,
+      "col": 6,
       "row": 8,
       "angle": 0
     },
@@ -207,8 +207,26 @@ const LEVEL_1 = {
       "angle": 0
     },
     {
+      "type": "ramp",
+      "col": 10,
+      "row": 7,
+      "angleIndex": 1
+    },
+    {
       "type": "block",
-      "col": 6,
+      "col": 10,
+      "row": 8,
+      "angle": 0
+    },
+    {
+      "type": "ramp",
+      "col": 9,
+      "row": 7,
+      "angleIndex": 0
+    },
+    {
+      "type": "block",
+      "col": 8,
       "row": 8,
       "angle": 0
     },
@@ -217,13 +235,25 @@ const LEVEL_1 = {
       "col": 6,
       "row": 7,
       "angleIndex": 1
+    },
+    {
+      "type": "ramp",
+      "col": 5,
+      "row": 7,
+      "angleIndex": 0
+    },
+    {
+      "type": "block",
+      "col": 5,
+      "row": 8,
+      "angle": 0
     }
   ],
   "goal": {
     "col": 2,
     "row": 6
   }
-}
+};
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -436,10 +466,10 @@ function keyPressed() {
   else if (key === "e") {
     exportLevel();
   }
-  else if (key === ";") {
+  else if (key === "l") {
     clearWorld();
   }
-  else if (key = "1") {
+  else if (key === "1") {
     loadLevel(LEVEL_1);
   }
   else if (keyCode === LEFT_ARROW) {
@@ -472,9 +502,9 @@ function getOccupiedCells(body) {
   const occupied = [];
 
   const startCol = Math.floor((minX - gridOffsetX) / cellSize);
-  const endCol   = Math.floor((maxX - gridOffsetX - 1) / cellSize);
+  const endCol   = Math.floor((maxX - gridOffsetX) / cellSize);
   const startRow = Math.floor((minY - gridOffsetY) / cellSize);
-  const endRow   = Math.floor((maxY - gridOffsetY - 1) / cellSize);
+  const endRow   = Math.floor((maxY - gridOffsetY) / cellSize);
 
   for (let col = startCol; col <= endCol; col++) {
     for (let row = startRow; row <= endRow; row++) {
@@ -884,11 +914,11 @@ class Contraption {
   }
 
   rotateLeft() {
-    this.tryRotate(-Math.PI / 12);
+    this.tryRotate(-Math.PI / 4);
   }
 
   rotateRight() {
-    this.tryRotate(Math.PI / 12);
+    this.tryRotate(Math.PI / 4);
   }
 
   tryRotate(delta) {
@@ -971,8 +1001,8 @@ class Trampoline extends Contraption {
     // Collision physics
     let angle = this.body.angle; 
     let incoming = Math.abs(ball.body.velocity.y);
-    let baseSpeed = cellSize * 0.25;
-    let speed = Math.max(baseSpeed, incoming * 1.1);
+    let baseSpeed = cellSize * 0.125;
+    let speed = Math.max(baseSpeed, incoming * 1.25);
 
 
     Matter.Body.setVelocity(ball.body, {
@@ -1055,7 +1085,7 @@ class Fan extends Contraption {
 
     // Strength falls off with distance from fan
     const distance = Math.abs(perp);
-    const strength = this.strength / (distance / cellSize * 10 + 1);
+    const strength = this.strength / (distance / cellSize * 7.5);
 
     // Force vector along fan’s forward direction (perpendicular to fan width)
     const force = {
@@ -1081,7 +1111,7 @@ class Fan extends Contraption {
     let spacing = this.width / (numStreams - 1);
     let flowLength = cellSize * 3;
 
-    let speed = cellSize * 0.05;
+    let speed = cellSize * 0.0375;
     let offset = frameCount * speed % (cellSize * 0.5);
 
     for (let i = 0; i < numStreams; i++) {
@@ -1112,7 +1142,7 @@ class Conveyor extends Contraption {
     this.color = "green";
     this.width = cellSize * 3 - 2 * cellSize / 5;
     this.height = cellSize / 5;
-    this.sideForce = cellSize * 0.000025;
+    this.sideForce = cellSize * 0.00005;
 
     let options = { isStatic: true };
     const { x, y } = cellToPixel(col, row);
