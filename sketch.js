@@ -190,12 +190,6 @@ const LEVEL_1 = {
     },
     {
       "type": "block",
-      "col": 9,
-      "row": 8,
-      "angle": 0
-    },
-    {
-      "type": "block",
       "col": 6,
       "row": 8,
       "angle": 0
@@ -213,14 +207,26 @@ const LEVEL_1 = {
       "angle": 0
     },
     {
-      "type": "ramp",
-      "col": 6,
-      "row": 7,
-      "angleIndex": 1
+      "type": "block",
+      "col": 5,
+      "row": 8,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 9,
+      "row": 8,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 4,
+      "row": 8,
+      "angle": 0
     }
   ],
   "goal": {
-    "col": 2,
+    "col": 1,
     "row": 7
   }
 };
