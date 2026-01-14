@@ -207,24 +207,6 @@ const LEVEL_1 = {
       "angle": 0
     },
     {
-      "type": "ramp",
-      "col": 10,
-      "row": 7,
-      "angleIndex": 1
-    },
-    {
-      "type": "block",
-      "col": 10,
-      "row": 8,
-      "angle": 0
-    },
-    {
-      "type": "ramp",
-      "col": 9,
-      "row": 7,
-      "angleIndex": 0
-    },
-    {
       "type": "block",
       "col": 8,
       "row": 8,
@@ -235,23 +217,11 @@ const LEVEL_1 = {
       "col": 6,
       "row": 7,
       "angleIndex": 1
-    },
-    {
-      "type": "ramp",
-      "col": 5,
-      "row": 7,
-      "angleIndex": 0
-    },
-    {
-      "type": "block",
-      "col": 5,
-      "row": 8,
-      "angle": 0
     }
   ],
   "goal": {
     "col": 2,
-    "row": 6
+    "row": 7
   }
 };
 
@@ -383,6 +353,20 @@ function draw() {
   }
 }
 
+function rotateOffset(dx, dy, angle) {
+  // for finding which cells a body owns
+  const step = Math.PI / 4;
+  const snapped = Math.round(angle / step) * step;
+
+  const cos = Math.round(Math.cos(snapped));
+  const sin = Math.round(Math.sin(snapped));
+
+  return {
+    dx: dx * cos - dy * sin,
+    dy: dx * sin + dy * cos
+  };
+} 
+
 function handleCollision(pair) {
   let bodyA = pair.bodyA;
   let bodyB = pair.bodyB;
@@ -489,6 +473,7 @@ function isInsideGrid(col, row) {
 }
 
 function getOccupiedCells(body) {
+  // AABB
   const bounds = body.bounds;
 
   // buffer to prevent spillover into other cell bugs
@@ -516,36 +501,22 @@ function getOccupiedCells(body) {
 }
 
 function isCellOccupied(col, row) {
-  // check walls
   for (let w of wallArray) {
-    const cells = getOccupiedCells(w.body);
-    for (let c of cells) {
-      if (c.col === col && c.row === row) {
-        return true;
-      }
+    if (w.col === col && w.row === row) {
+      return true;
     }
   }
 
-  // check contraptions
   for (let c of contrArray) {
-    const cells = getOccupiedCells(c.body);
-    for (let cell of cells) {
+    for (let cell of c.getFootprint()) {
       if (cell.col === col && cell.row === row) {
-
         return true;
       }
     }
   }
 
-  // check goal
-  if (goal) {
-    const cells = getOccupiedCells(goal.body);
-    for (let cell of cells) {
-      if (cell.col === col && cell.row === row) {
-
-        return true;
-      }
-    }
+  if (goal && goal.col === col && goal.row === row) {
+    return true;
   }
 
   return false;
@@ -620,11 +591,9 @@ function deleteCell(col, row) {
   // delete contraptions
   for (let i = contrArray.length - 1; i >= 0; i--) {
     const c = contrArray[i];
-    const cells = getOccupiedCells(c.body);
 
-    for (let cell of cells) {
+    for (let cell of c.getFootprint()) {
       if (cell.col === col && cell.row === row) {
-
         Composite.remove(engine.world, c.body);
         contrArray.splice(i, 1);
         return;
@@ -913,6 +882,10 @@ class Contraption {
     this.angle = angle;
   }
 
+  getFootprint() {
+    return [{ col: this.col, row: this.row }];
+  }
+
   rotateLeft() {
     this.tryRotate(-Math.PI / 4);
   }
@@ -1026,6 +999,19 @@ class Fan extends Contraption {
 
     Composite.add(engine.world, this.body);
   }
+
+  getFootprint() {
+    const cells = [{ col: this.col, row: this.row }];
+    const off = rotateOffset(1, 0, this.body.angle);
+
+    cells.push({
+      col: this.col + off.dx,
+      row: this.row + off.dy
+    });
+
+    return cells;
+  }
+
 
   rotate() {
     super.rotate();
@@ -1152,6 +1138,21 @@ class Conveyor extends Contraption {
 
     Composite.add(engine.world, this.body);
   }
+  
+  getFootprint() {
+    const cells = [{ col: this.col, row: this.row }];
+
+    const off1 = rotateOffset(1, 0, this.body.angle);
+    const off2 = rotateOffset(-1, 0, this.body.angle);
+
+    cells.push(
+      { col: this.col + off1.dx, row: this.row + off1.dy },
+      { col: this.col + off2.dx, row: this.row + off2.dy }
+    );
+
+    return cells;
+  }
+
 
   rotate() {
     super.rotate();
