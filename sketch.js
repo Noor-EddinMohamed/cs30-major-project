@@ -720,6 +720,11 @@ function keyPressed() {
   else if (key === "2") {
     loadLevel(LEVEL_2);
   }
+  else if (keyCode === UP_ARROW || keyCode === DOWN_ARROW) {
+    if (lastPlaced && lastPlaced.flipContr) {
+      lastPlaced.flipContr();
+    }
+  }
   else if (keyCode === LEFT_ARROW) {
     if (lastPlaced && lastPlaced.rotateLeft) {
       lastPlaced.rotateLeft();
@@ -1148,6 +1153,10 @@ class Contraption {
 
   getFootprint() {
     return [{ col: this.col, row: this.row }];
+  }
+
+  flipContr() {
+    this.tryRotate(Math.PI)
   }
 
   rotateLeft() {
