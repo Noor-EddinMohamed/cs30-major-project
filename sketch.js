@@ -223,11 +223,266 @@ const LEVEL_1 = {
       "col": 4,
       "row": 8,
       "angle": 0
+    },
+    {
+      "type": "ramp",
+      "col": 7,
+      "row": 7,
+      "angleIndex": 1
+    },
+    {
+      "type": "ramp",
+      "col": 6,
+      "row": 7,
+      "angleIndex": 0
     }
   ],
   "goal": {
     "col": 1,
     "row": 7
+  }
+};
+
+const LEVEL_2 = {
+  "walls": [
+    {
+      "type": "block",
+      "col": 3,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 5,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 4,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 6,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 13,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 8,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 7,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 13,
+      "row": 1,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 12,
+      "row": 1,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 11,
+      "row": 1,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 10,
+      "row": 1,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 8,
+      "row": 1,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 9,
+      "row": 1,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 7,
+      "row": 1,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 6,
+      "row": 1,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 4,
+      "row": 1,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 5,
+      "row": 1,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 3,
+      "row": 1,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 12,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 11,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 5,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 6,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 7,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 8,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 4,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 9,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 10,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 9,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 10,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "ramp",
+      "col": 13,
+      "row": 2,
+      "angleIndex": 3
+    },
+    {
+      "type": "block",
+      "col": 14,
+      "row": 1,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 14,
+      "row": 2,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 14,
+      "row": 3,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 14,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 14,
+      "row": 6,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 14,
+      "row": 5,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 14,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "ramp",
+      "col": 13,
+      "row": 6,
+      "angleIndex": 0
+    },
+    {
+      "type": "block",
+      "col": 11,
+      "row": 4,
+      "angle": 0
+    }
+  ],
+  "goal": {
+    "col": 2,
+    "row": 3
   }
 };
 
@@ -462,6 +717,9 @@ function keyPressed() {
   else if (key === "1") {
     loadLevel(LEVEL_1);
   }
+  else if (key === "2") {
+    loadLevel(LEVEL_2);
+  }
   else if (keyCode === LEFT_ARROW) {
     if (lastPlaced && lastPlaced.rotateLeft) {
       lastPlaced.rotateLeft();
@@ -679,7 +937,7 @@ function applyRampAssist(ball) {
         tangent.y *= -1;
       }
 
-      const strength = cellSize * 0.0000125;
+      const strength = cellSize * 0.00001875;
 
       Matter.Body.applyForce(ball.body, ball.body.position, {
         x: tangent.x * strength,
@@ -862,7 +1120,7 @@ class Goal {
     this.col = col;
     this.row = row;
     this.width = width;
-    this.color = "red"; 
+    this.color = "green"; 
     let options = { isStatic: true };
     const { x, y } = cellToPixel(col, row);
     this.body = Bodies.rectangle(x, y, this.width, this.width, options);
@@ -893,11 +1151,11 @@ class Contraption {
   }
 
   rotateLeft() {
-    this.tryRotate(-Math.PI / 4);
+    this.tryRotate(-Math.PI / 12);
   }
 
   rotateRight() {
-    this.tryRotate(Math.PI / 4);
+    this.tryRotate(Math.PI / 12);
   }
 
   tryRotate(delta) {
