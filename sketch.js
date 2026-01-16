@@ -19,13 +19,12 @@ let rows;
 let cols;
 let gridOffsetX;
 let gridOffsetY;
-
-let goal;
 let lastPlaced;
 
 let wallArray = [];
 let ballArray = [];
 let contrArray = [];
+let goalArray;
 
 let setting = "block";
 
@@ -237,10 +236,13 @@ const LEVEL_1 = {
       "angleIndex": 0
     }
   ],
-  "goal": {
-    "col": 1,
-    "row": 7
-  }
+  goals: [
+    {
+      "type": "goal",
+      "col": 1,
+      "row": 7
+    }
+  ]
 };
 
 const LEVEL_2 = {
@@ -478,12 +480,51 @@ const LEVEL_2 = {
       "col": 11,
       "row": 4,
       "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 3,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 2,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 2,
+      "row": 6,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 2,
+      "row": 5,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 2,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 2,
+      "row": 1,
+      "angle": 0
     }
   ],
-  "goal": {
-    "col": 2,
-    "row": 3
-  }
+  goals: [
+    {
+      "type": "goal",
+      "col": 2,
+      "row": 2
+    }
+  ]
 };
 
 function setup() {
@@ -522,15 +563,15 @@ function setup() {
 }
 
 function exportLevel() {
-  const level = {
+  const LEVEL = {
     walls: [],
-    goal: null
+    goals: []
   };
 
   // save walls
   for (let w of wallArray) {
     if (w instanceof Block) {
-      level.walls.push({
+      LEVEL.walls.push({
         type: "block",
         col: w.col,
         row: w.row,
@@ -538,7 +579,7 @@ function exportLevel() {
       });
     }
     else if (w instanceof Ramp) {
-      level.walls.push({
+      LEVEL.walls.push({
         type: "ramp",
         col: w.col,
         row: w.row,
@@ -546,16 +587,17 @@ function exportLevel() {
       });
     }
   }
-
-  // save goal
-  if (goal) {
-    level.goal = {
-      col: goal.col,
-      row: goal.row
-    };
+  for (let g of goalArray) {
+    LEVEL.goals.push([
+      LEVEL.g = {
+        type: "goal",
+        col: g.col,
+        row: g.row
+      }
+    ]);
   }
 
-  console.log(JSON.stringify(level, null, 2));
+  console.log(JSON.stringify(LEVEL, null, 2));
 }
 
 function clearWorld() {
@@ -566,7 +608,7 @@ function clearWorld() {
   wallArray = [];
   contrArray = [];
   ballArray = [];
-  goal = null;
+  goalArray = [];
 }
 
 function loadLevel(level) {
@@ -580,9 +622,8 @@ function loadLevel(level) {
       wallArray.push(new Ramp(w.col, w.row, w.angleIndex));
     }
   }
-
-  if (level.goal) {
-    goal = new Goal(level.goal.col, level.goal.row, cellSize);
+  for (let g of level.goals) {
+    goalArray.push(new Goal(g.col, g.row));
   }
 }
 
@@ -609,22 +650,22 @@ function draw() {
       someContr.applyConveyorForce();
     }
   }
-  if (goal) {
-    goal.display();
+  for (let someGoal of goalArray) {
+    someGoal.display();
   }
 }
 
 function rotateOffset(dx, dy, angle) {
   // for finding which cells a body owns
-  const step = Math.PI / 4;
-  const snapped = Math.round(angle / step) * step;
+  const STEP = Math.PI / 4;
+  const SNAPPED = Math.round(angle / STEP) * STEP;
 
-  const cos = Math.round(Math.cos(snapped));
-  const sin = Math.round(Math.sin(snapped));
+  const COS = Math.round(Math.cos(SNAPPED));
+  const SIN = Math.round(Math.sin(SNAPPED));
 
   return {
-    dx: dx * cos - dy * sin,
-    dy: dx * sin + dy * cos
+    dx: dx * COS - dy * SIN,
+    dy: dx * SIN + dy * COS
   };
 } 
 
@@ -720,9 +761,14 @@ function keyPressed() {
   else if (key === "2") {
     loadLevel(LEVEL_2);
   }
-  else if (keyCode === UP_ARROW || keyCode === DOWN_ARROW) {
-    if (lastPlaced && lastPlaced.flipContr) {
-      lastPlaced.flipContr();
+  else if (keyCode === DOWN_ARROW) {
+    if (lastPlaced && lastPlaced.rotate180) {
+      lastPlaced.rotate180();
+    }
+  }
+  else if (keyCode === UP_ARROW) {
+    if (lastPlaced && lastPlaced.rotate90) {
+      lastPlaced.rotate90();
     }
   }
   else if (keyCode === LEFT_ARROW) {
@@ -743,22 +789,22 @@ function isInsideGrid(col, row) {
 
 function getOccupiedCells(body) {
   // AABB
-  const bounds = body.bounds;
+  const BOUNDS = body.bounds;
 
   // buffer to prevent spillover into other cell bugs
   const OFFSET = cellSize * 0.001;
 
-  const minX = bounds.min.x + OFFSET;
-  const maxX = bounds.max.x - OFFSET;
-  const minY = bounds.min.y + OFFSET;
-  const maxY = bounds.max.y - OFFSET;
+  const MIN_X = BOUNDS.min.x + OFFSET;
+  const MAX_X = BOUNDS.max.x - OFFSET;
+  const MIN_Y = BOUNDS.min.y + OFFSET;
+  const MAX_Y = BOUNDS.max.y - OFFSET;
 
   const occupied = [];
 
-  const startCol = Math.floor((minX - gridOffsetX) / cellSize);
-  const endCol   = Math.floor((maxX - gridOffsetX) / cellSize);
-  const startRow = Math.floor((minY - gridOffsetY) / cellSize);
-  const endRow   = Math.floor((maxY - gridOffsetY) / cellSize);
+  const startCol = Math.floor((MIN_X - gridOffsetX) / cellSize);
+  const endCol   = Math.floor((MAX_X - gridOffsetX) / cellSize);
+  const startRow = Math.floor((MIN_Y - gridOffsetY) / cellSize);
+  const endRow   = Math.floor((MAX_Y - gridOffsetY) / cellSize);
 
   for (let col = startCol; col <= endCol; col++) {
     for (let row = startRow; row <= endRow; row++) {
@@ -784,8 +830,10 @@ function isCellOccupied(col, row) {
     }
   }
 
-  if (goal && goal.col === col && goal.row === row) {
-    return true;
+  for (let g of goalArray) {
+    if (g.col === col && g.row === row) {
+      return true;
+    }
   }
 
   return false;
@@ -829,28 +877,21 @@ function toggleCell(col, row) {
     lastPlaced = theContr;
   }
   else if (setting === "goal") {
-    // delete old goal if it exists
-    if (goal) {
-      Composite.remove(engine.world, goal.body);
-      let index = contrArray.indexOf(goal);
-      if (index !== -1) {
-        contrArray.splice(index, 1);
-      }
-    }
-    goal = new Goal(col, row, cellSize);
+    let theGoal = new Goal(col, row);
+    goalArray.push(theGoal);
   }
 }
 
 function deleteCell(col, row) {
   // delete walls
   for (let i = wallArray.length - 1; i >= 0; i--) {
-    const w = wallArray[i];
-    const cells = getOccupiedCells(w.body);
+    const W = wallArray[i];
+    const CELLS = getOccupiedCells(W.body);
 
-    for (let cell of cells) {
+    for (let cell of CELLS) {
       if (cell.col === col && cell.row === row) {
 
-        Composite.remove(engine.world, w.body);
+        Composite.remove(engine.world, W.body);
         wallArray.splice(i, 1);
         return;
       }
@@ -859,25 +900,26 @@ function deleteCell(col, row) {
 
   // delete contraptions
   for (let i = contrArray.length - 1; i >= 0; i--) {
-    const c = contrArray[i];
+    const C = contrArray[i];
 
-    for (let cell of c.getFootprint()) {
+    for (let cell of C.getFootprint()) {
       if (cell.col === col && cell.row === row) {
-        Composite.remove(engine.world, c.body);
+        Composite.remove(engine.world, C.body);
         contrArray.splice(i, 1);
         return;
       }
     }
   }
   
-  // delete goal
-  if (goal) {
-    const cells = getOccupiedCells(goal.body);
-    for (let cell of cells) {
+  for (let i = goalArray.length - 1; i >= 0; i--) {
+    const G = goalArray[i];
+    const CELLS = getOccupiedCells(G.body);
+
+    for (let cell of CELLS) {
       if (cell.col === col && cell.row === row) {
 
-        Composite.remove(engine.world, goal.body);
-        goal = null;
+        Composite.remove(engine.world, W.body);
+        goalArray.splice(i, 1);
         return;
       }
     }
@@ -885,8 +927,8 @@ function deleteCell(col, row) {
 }
 
 function deleteOverlaps(body) {
-  const cells = getOccupiedCells(body);
-  for (let cell of cells) {
+  const CELLS = getOccupiedCells(body);
+  for (let cell of CELLS) {
     deleteCell(cell.col, cell.row);
   }
 }
@@ -910,8 +952,8 @@ function deleteOutOfBounds() {
 
 function canRotate(body, allBodies) {
   // prevents rotation into other objects
-  const collisions = Query.collides(body, allBodies);
-  return collisions.length === 0;
+  const COLLISIONS = Query.collides(body, allBodies);
+  return COLLISIONS.length === 0;
 }
 
 function applyRampAssist(ball) {
@@ -921,12 +963,12 @@ function applyRampAssist(ball) {
       continue;
     }
 
-    const collisions = Matter.Query.collides(ball.body, [w.body]);
-    if (collisions.length === 0) {
+    const COLLISIONS = Matter.Query.collides(ball.body, [w.body]);
+    if (COLLISIONS.length === 0) {
       continue;
     }
 
-    for (let c of collisions) {
+    for (let c of COLLISIONS) {
       // collision normal (points out of the ramp)
       const normal = c.normal;
 
@@ -942,11 +984,11 @@ function applyRampAssist(ball) {
         tangent.y *= -1;
       }
 
-      const strength = cellSize * 0.00001875;
+      const STRENGTH = cellSize * 0.00001875;
 
       Matter.Body.applyForce(ball.body, ball.body.position, {
-        x: tangent.x * strength,
-        y: tangent.y * strength
+        x: tangent.x * STRENGTH,
+        y: tangent.y * STRENGTH
       });
     }
   }
@@ -1055,24 +1097,24 @@ class Ramp extends Wall {
     ];
 
     // Rotate vertices by 90° increments
-    const angle = this.angleIndex * Math.PI / 2;
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
+    const ANGLE = this.angleIndex * Math.PI / 2;
+    const COS = Math.cos(ANGLE);
+    const SIN = Math.sin(ANGLE);
     let rotated = vertices.map(v => ({
-      x: v.x * cos - v.y * sin,
-      y: v.x * sin + v.y * cos
+      x: v.x * COS - v.y * SIN,
+      y: v.x * SIN + v.y * COS
     }));
 
     // Compute triangle centroid
-    const centroid = {
+    const CENTROID = {
       x: (rotated[0].x + rotated[1].x + rotated[2].x) / 3,
       y: (rotated[0].y + rotated[1].y + rotated[2].y) / 3
     };
 
     // Shift vertices so centroid = (0,0)
     let shiftedVertices = rotated.map(v => ({
-      x: v.x - centroid.x,
-      y: v.y - centroid.y
+      x: v.x - CENTROID.x,
+      y: v.y - CENTROID.y
     }));
 
     // Remove old body if exists
@@ -1084,15 +1126,15 @@ class Ramp extends Wall {
     this.body = Bodies.fromVertices(0, 0, shiftedVertices, this.options);
     
     // Compute diagonal midpoint (bottom-left to top-right)
-    const diagMid = {
-      x: (rotated[0].x + rotated[2].x) / 2 - centroid.x,
-      y: (rotated[0].y + rotated[2].y) / 2 - centroid.y
+    const DIAG_MID = {
+      x: (rotated[0].x + rotated[2].x) / 2 - CENTROID.x,
+      y: (rotated[0].y + rotated[2].y) / 2 - CENTROID.y
     };
 
     // Place the body so diagonal midpoint is at cell center
     Matter.Body.setPosition(this.body, {
-      x: this.cellCenter.x + (cellSize / 2 - diagMid.x - cellSize / 2),
-      y: this.cellCenter.y + (cellSize / 2 - diagMid.y - cellSize / 2)
+      x: this.cellCenter.x + (cellSize / 2 - DIAG_MID.x - cellSize / 2),
+      y: this.cellCenter.y + (cellSize / 2 - DIAG_MID.y - cellSize / 2)
     });
 
     Composite.add(engine.world, this.body);
@@ -1155,8 +1197,12 @@ class Contraption {
     return [{ col: this.col, row: this.row }];
   }
 
-  flipContr() {
-    this.tryRotate(Math.PI)
+  rotate180() {
+    this.tryRotate(Math.PI);
+  }
+
+  rotate90() {
+    this.tryRotate(Math.PI / 2);
   }
 
   rotateLeft() {
@@ -1168,14 +1214,14 @@ class Contraption {
   }
 
   tryRotate(delta) {
-    const oldAngle = this.body.angle;
-    Matter.Body.setAngle(this.body, oldAngle + delta);
+    const OLD_ANGLE = this.body.angle;
+    Matter.Body.setAngle(this.body, OLD_ANGLE + delta);
 
     // all other bodies in the world
-    const allBodies = Composite.allBodies(engine.world);
+    const ALL_BODIES = Composite.allBodies(engine.world);
     let others = [];
 
-    for (let b of allBodies) {
+    for (let b of ALL_BODIES) {
       if (b !== this.body) {
         others.push(b);
       }
@@ -1183,10 +1229,10 @@ class Contraption {
 
     if (!canRotate(this.body, others)) {
       // undo rotation
-      Matter.Body.setAngle(this.body, oldAngle);
+      Matter.Body.setAngle(this.body, OLD_ANGLE);
     } 
     else {
-      this.angle = oldAngle + delta;
+      this.angle = OLD_ANGLE + delta;
     }
   }
 }
@@ -1274,15 +1320,15 @@ class Fan extends Contraption {
   }
 
   getFootprint() {
-    const cells = [{ col: this.col, row: this.row }];
-    const off = rotateOffset(1, 0, this.body.angle);
+    const CELLS = [{ col: this.col, row: this.row }];
+    const OFF = rotateOffset(1, 0, this.body.angle);
 
-    cells.push({
-      col: this.col + off.dx,
-      row: this.row + off.dy
+    CELLS.push({
+      col: this.col + OFF.dx,
+      row: this.row + OFF.dy
     });
 
-    return cells;
+    return CELLS;
   }
 
 
@@ -1292,67 +1338,67 @@ class Fan extends Contraption {
   }
 
   applyAirflow(ball) {
-    const fanPos = this.body.position;
-    const angle = this.body.angle;
+    const FAN_POS = this.body.position;
+    const ANGLE = this.body.angle;
 
     // Fan endpoints in world space (stackoverflow helped with the vector math here)
-    const left = Matter.Vector.add(fanPos, Matter.Vector.rotate({ x: -this.width/2, y: 0 }, angle));
-    const right = Matter.Vector.add(fanPos, Matter.Vector.rotate({ x: this.width/2, y: 0 }, angle));
+    const LEFT = Matter.Vector.add(FAN_POS, Matter.Vector.rotate({ x: -this.width/2, y: 0 }, ANGLE));
+    const RIGHT = Matter.Vector.add(FAN_POS, Matter.Vector.rotate({ x: this.width/2, y: 0 }, ANGLE));
 
     // Vector along the fan (width)
-    const fanVec = Matter.Vector.sub(right, left);
-    const fanLen = Matter.Vector.magnitude(fanVec);
-    const fanDir = Matter.Vector.normalise(fanVec);
+    const FAN_VEC = Matter.Vector.sub(RIGHT, LEFT);
+    const FAN_LEN = Matter.Vector.magnitude(FAN_VEC);
+    const FAN_DIR = Matter.Vector.normalise(FAN_VEC);
 
     // Vector from left end to ball
-    const ballVec = Matter.Vector.sub(ball.body.position, left);
+    const BALL_VEC = Matter.Vector.sub(ball.body.position, LEFT);
 
     // Project ball onto fan width 
-    const proj = Matter.Vector.dot(ballVec, fanDir);
+    const PROJ = Matter.Vector.dot(BALL_VEC, FAN_DIR);
 
     // Check if ball is within fan width
-    if (proj < 0 || proj > fanLen) {
+    if (PROJ < 0 || PROJ > FAN_LEN) {
       return;
     }
 
     // Perpendicular distance to fan line 
-    const perp = ballVec.x * fanDir.y - ballVec.y * fanDir.x;
+    const PERP = BALL_VEC.x * FAN_DIR.y - BALL_VEC.y * FAN_DIR.x;
 
-    // Only apply force if ball is on the active side (perp > 0)
-    if (perp <= 0) {
+    // Only apply force if ball is on the active side (PERP > 0)
+    if (PERP <= 0) {
       return;
     }
 
     // raycasting to detect if other bodies are in the way (thanks stackoverflow!)
-    const fanForward = { x: fanDir.y, y: -fanDir.x };
-    const rayEnd = {
-      x: fanPos.x + fanForward.x * Math.abs(perp),
-      y: fanPos.y + fanForward.y * Math.abs(perp)
+    const fanForward = { x: FAN_DIR.y, y: -FAN_DIR.x };
+    const RAY_END = {
+      x: FAN_POS.x + fanForward.x * Math.abs(PERP),
+      y: FAN_POS.y + fanForward.y * Math.abs(PERP)
     };
 
-    const blockers = Matter.Query.ray(
+    const BLOCKERS = Matter.Query.ray(
       Matter.Composite.allBodies(engine.world),
-      fanPos,
-      rayEnd
+      FAN_POS,
+      RAY_END
     );
 
-    for (let hit of blockers) {
+    for (let hit of BLOCKERS) {
       if (hit.bodyA !== this.body && hit.bodyA !== ball.body) {
         return; // airflow blocked
       }
     }
 
     // Strength falls off with distance from fan
-    const distance = Math.abs(perp);
-    const strength = this.strength / (distance / cellSize * 7.5);
+    const DISTANCE = Math.abs(PERP);
+    const STRENGTH = this.strength / (DISTANCE / cellSize * 7.5);
 
     // Force vector along fan’s forward direction (perpendicular to fan width)
-    const force = {
-      x: fanDir.y * strength,
-      y: -fanDir.x * strength
+    const applyForce = {
+      x: FAN_DIR.y * STRENGTH,
+      y: -FAN_DIR.x * STRENGTH
     };
 
-    Matter.Body.applyForce(ball.body, ball.body.position, force);
+    Matter.Body.applyForce(ball.body, ball.body.position, applyForce);
   }
 
   display() {
@@ -1413,17 +1459,17 @@ class Conveyor extends Contraption {
   }
   
   getFootprint() {
-    const cells = [{ col: this.col, row: this.row }];
+    const CELLS = [{ col: this.col, row: this.row }];
 
-    const off1 = rotateOffset(1, 0, this.body.angle);
-    const off2 = rotateOffset(-1, 0, this.body.angle);
+    const OFF_1 = rotateOffset(1, 0, this.body.angle);
+    const OFF_2 = rotateOffset(-1, 0, this.body.angle);
 
-    cells.push(
-      { col: this.col + off1.dx, row: this.row + off1.dy },
-      { col: this.col + off2.dx, row: this.row + off2.dy }
+    CELLS.push(
+      { col: this.col + OFF_2.dx, row: this.row + OFF_2.dy },
+      { col: this.col + OFF_2.dx, row: this.row + OFF_2.dy }
     );
 
-    return cells;
+    return CELLS;
   }
 
 
@@ -1444,17 +1490,17 @@ class Conveyor extends Contraption {
   }
 
   applyConveyorForce() {
-    const angle = this.body.angle;
-    const forceVector = { 
-      x: Math.cos(angle) * this.sideForce, 
-      y: Math.sin(angle) * this.sideForce 
+    const ANGLE = this.body.angle;
+    const FORCE_VECTOR = { 
+      x: Math.cos(ANGLE) * this.sideForce, 
+      y: Math.sin(ANGLE) * this.sideForce 
     };
 
     for (let b of ballArray) {
-      const collisions = Matter.Query.collides(this.body, [b.body]);
+      const COLLISIONS = Matter.Query.collides(this.body, [b.body]);
 
-      if (collisions.length > 0) {
-        Matter.Body.applyForce(b.body, b.body.position, forceVector);
+      if (COLLISIONS.length > 0) {
+        Matter.Body.applyForce(b.body, b.body.position, FORCE_VECTOR);
       }
     }
   }
