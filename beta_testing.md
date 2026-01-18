@@ -2,7 +2,10 @@
 
 ## Programmer's Notes
 - Click ball to reset JUST ball position, not contraptions
-- 
+- Saving levels would be nice
+- Sound effects are good
+- Like multiple levels
+- Wish it looked prettier
 
 ## Non-Programmer's Notes
 - If the walls would be bouncy, that would be great
