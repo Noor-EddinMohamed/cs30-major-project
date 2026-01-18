@@ -21,7 +21,6 @@ let simulationRunning = false;
 
 let contraptionCounts = {};
 
-
 // 2d array variables
 let theGrid;
 const GRID_COLS = 16;
@@ -40,11 +39,9 @@ let goalArray = [];
 
 let setting = "block";
 
+// sounds
 let sTramp;
-let sConveyor;
-let sFan;
 let sGoal;
-let anyConveyorTouching = false;
 
 // level data
 const LEVEL_1 = {
@@ -894,11 +891,12 @@ function drawHUD() {
 
   // Collect lines to draw
   let lines = [];
-  lines.push("Press M to return to menu");
+  lines.push("M: Menu");
 
   if (gameMode === MODE_LEVEL && currentLevel && currentLevel.allowedContraptions) {
     const rules = currentLevel.allowedContraptions;
 
+    lines.push("A: Start Simulation");
     if (rules.trampoline !== undefined) {
       lines.push(`T: Place trampoline (max ${rules.trampoline})`);
     }
@@ -911,6 +909,9 @@ function drawHUD() {
     if (rules.ball !== undefined) {
       lines.push(`B: Place ball spawn (max ${rules.ball})`);
     }
+    lines.push("Up Arrow: Rotate 90°");
+    lines.push("Down Arrow: Rotate 180°");
+    lines.push("Left/Right Arrow: Rotate 15°");
   }
 
   if (gameMode === MODE_EDITOR) {
@@ -921,6 +922,9 @@ function drawHUD() {
     lines.push("T: Trampoline mode");
     lines.push("C: Conveyor mode");
     lines.push("F: Fan mode");
+    lines.push("Up Arrow: Rotate 90°");
+    lines.push("Down Arrow: Rotate 180°");
+    lines.push("Left/Right Arrow: Rotate 15°");
   }
 
   // background
@@ -947,8 +951,6 @@ const LEVELS = [
 
 function preload() {
   sTramp = loadSound("sounds/trampoline.mp3");
-  sConveyor = loadSound("sounds/conveyor.mp3");
-  sFan = loadSound("sounds/fan.mp3");
   sGoal = loadSound("sounds/goal.mp3");
 }
 
@@ -959,8 +961,6 @@ function setup() {
   );
 
   sTramp.setVolume(0.5);
-  sConveyor.setVolume(0.25)
-  sFan.setVolume(0.25);
   sGoal.setVolume(0.75);
 
   cols = GRID_COLS;
@@ -1093,6 +1093,7 @@ function loadLevel(level) {
 }
 
 function spawnLevelBalls() {
+  // spawns balls in predetermined position
   if (!isLevelMode()) {
     return;
   }
@@ -1145,7 +1146,6 @@ function canUseContraption(type) {
 
 
 function draw() {
-  anyConveyorTouching = false;
   if (gameMode === MODE_MENU) {
     drawMenu();
     return;
@@ -1157,7 +1157,6 @@ function draw() {
   background("white");
   deleteOutOfBounds();
   showGrid();
-  drawHUD();
 
   if (isEditorMode()) {
     simulationRunning = false;
@@ -1172,7 +1171,6 @@ function draw() {
   for (let someContr of contrArray) {
     someContr.display();
     if (someContr instanceof Fan) {
-      someContr.updateSound();
       for (let ball of ballArray) {
         someContr.applyAirflow(ball);
       }
@@ -1184,24 +1182,11 @@ function draw() {
   for (let someGoal of goalArray) {
     someGoal.display();
   }
-  if (sConveyor) {
-  sConveyor.setLoop(true);
-  if (anyConveyorTouching && !sConveyor.isPlaying()) {
-    sConveyor.play();
-  }
-  if (!anyConveyorTouching && sConveyor.isPlaying()) {
-    sConveyor.stop();
-  }
-}
+
+  drawHUD();
 }
 
 function stopAllSounds() {
-  if (sFan && sFan.isPlaying()) {
-    sFan.stop();
-  }
-  if (sConveyor && sConveyor.isPlaying()) {
-    sConveyor.stop();
-  }
   if (sTramp && sTramp.isPlaying()) {
     sTramp.stop();
   }
@@ -1226,6 +1211,7 @@ function rotateOffset(dx, dy, angle) {
 } 
 
 function handleCollision(pair) {
+  // listens for collisions
   let bodyA = pair.bodyA;
   let bodyB = pair.bodyB;
 
@@ -1271,17 +1257,10 @@ function removeBall(ballBody) {
       break;
     }
   }
-
-  // stop fan sound if no balls left
-  if (ballArray.length === 0) {
-    if (sFan && sFan.isPlaying()) sFan.stop();
-  }
-
 }
 
 function mousePressed() {
-  userStartAudio();
-
+  // translates mouse position to grid cell
   let col = Math.floor((mouseX - gridOffsetX) / cellSize);
   let row = Math.floor((mouseY - gridOffsetY) / cellSize);
 
@@ -1323,7 +1302,8 @@ function keyPressed() {
     if (isLevelMode()) {
       spawnLevelBalls();
       return;
-    } else if (isEditorMode()) {
+    } 
+    else if (isEditorMode()) {
       setting = "ball";
       return;
     }
@@ -1425,7 +1405,7 @@ function isCellOccupied(col, row) {
 }
 
 function toggleCell(col, row) {
-
+  // toggle cell only when allowed/with allowed objects
   if (simulationRunning) {
     return;
   }
@@ -1487,7 +1467,6 @@ function toggleCell(col, row) {
 }
 
 function deleteCell(col, row) {
-
   if (simulationRunning) {
     return;
   }
@@ -1568,6 +1547,7 @@ function deleteOutOfBounds() {
 }
 
 function canPlaceContraption(contr) {
+  // determines if contraption is placeable
   const CELLS = contr.getFootprint();
 
   for (let cell of CELLS) {
@@ -1612,8 +1592,6 @@ function trySpawnContraption(ContrClass, col, row, angles) {
 
   return null;
 }
-
-
 
 function canRotate(body, allBodies) {
   // prevents rotation into other objects
@@ -1862,7 +1840,7 @@ class Contraption {
     Composite.add(engine.world, this.body);
   }
 
-  getFootprint() {
+  getFootprint() { // which cells are occupied by contraption
     return [{ col: this.col, row: this.row }];
   }
 
@@ -1974,10 +1952,6 @@ class Trampoline extends Contraption {
   }
 }
 
-function anyBallsExist() {
-  return ballArray.length > 0;
-}
-
 class Fan extends Contraption {
   constructor(col, row, angle) {
     super(col, row, angle);
@@ -1985,8 +1959,6 @@ class Fan extends Contraption {
     this.width = cellSize * 2 - 2 * cellSize / 5;
     this.height = cellSize / 5;
     this.strength = cellSize * 0.0005;
-    this.sound = sFan;
-    this.sound.setLoop(true);
     let options = { isStatic: true};
     const { x, y } = cellToPixel(col, row);
     this.body = Bodies.rectangle(x, y, this.width, this.height, options);
@@ -1994,7 +1966,7 @@ class Fan extends Contraption {
 
   }
 
-  getFootprint() {
+  getFootprint() { 
     const CELLS = [{ col: this.col, row: this.row }];
     const OFF = rotateOffset(1, 0, this.body.angle);
 
@@ -2010,20 +1982,6 @@ class Fan extends Contraption {
   rotate() {
     super.tryRotate();
     Matter.Body.setAngle(this.body, this.angle);
-  }
-
-  updateSound() {
-    if (!this.sound) return;
-
-    if (anyBallsExist()) {
-      if (!this.sound.isPlaying()) {
-        this.sound.play();
-      }
-    } else {
-      if (this.sound.isPlaying()) {
-        this.sound.stop();
-      }
-    }
   }
 
   applyAirflow(ball) {
@@ -2137,7 +2095,6 @@ class Conveyor extends Contraption {
     this.width = cellSize * 3 - 2 * cellSize / 5;
     this.height = cellSize / 5;
     this.sideForce = cellSize * 0.00005;
-
     let options = { isStatic: true };
     const { x, y } = cellToPixel(col, row);
     this.body = Bodies.rectangle(x, y, this.width, this.height, options);
@@ -2165,18 +2122,10 @@ class Conveyor extends Contraption {
     Matter.Body.setAngle(this.body, this.angle);
   }
 
-  onCollision(pair) {
-    for (let b of ballArray) {
-      if (b.body === pair.bodyA || b.body === pair.bodyB) {
-        b.conveyorOn = true; 
-      }
-      else {
-        b.conveyorOn = false;
-      }
-    }
-  }
 
   applyConveyorForce() {
+    this.isActive = false;
+
     const ANGLE = this.body.angle;
     const FORCE_VECTOR = { 
       x: Math.cos(ANGLE) * this.sideForce, 
@@ -2186,7 +2135,7 @@ class Conveyor extends Contraption {
     for (let b of ballArray) {
       const hits = Matter.Query.collides(this.body, [b.body]);
       if (hits.length > 0) {
-        anyConveyorTouching = true;
+        this.isActive = true;
         Matter.Body.applyForce(b.body, b.body.position, FORCE_VECTOR);
       }
     }
