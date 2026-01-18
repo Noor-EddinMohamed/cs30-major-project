@@ -1285,6 +1285,12 @@ function keyPressed() {
     }
     return;
   }
+  // reload
+  if ((key === "o" || key === "O") && isLevelMode() && currentLevel) {
+    stopAllSounds();
+    loadLevel(currentLevel);
+    return;
+  }
   else if (key === "m" || key === "M") {
     gameMode = MODE_MENU;
     stopAllSounds();
