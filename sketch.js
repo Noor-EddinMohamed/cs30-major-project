@@ -881,7 +881,7 @@ function drawHUD() {
   // HUD box
   rectMode(CORNER);
   textAlign(LEFT, TOP);
-  textSize(14);
+  textSize(11);
   noStroke();
 
   let x = 10;
