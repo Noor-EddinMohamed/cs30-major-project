@@ -892,22 +892,20 @@ function drawHUD() {
   // Collect lines to draw
   let lines = [];
   lines.push("M: Menu");
+  lines.push("O: Restart")
 
   if (gameMode === MODE_LEVEL && currentLevel && currentLevel.allowedContraptions) {
     const rules = currentLevel.allowedContraptions;
 
     lines.push("A: Start Simulation");
     if (rules.trampoline !== undefined) {
-      lines.push(`T: Place trampoline (max ${rules.trampoline})`);
+      lines.push(`T: Trampoline mode (click to place/delete) (max ${rules.trampoline})`);
     }
     if (rules.fan !== undefined) {
-      lines.push(`F: Place fan (max ${rules.fan})`);
+      lines.push(`F: Fan mode (max ${rules.fan})`);
     }
     if (rules.conveyor !== undefined) {
-      lines.push(`C: Place conveyor (max ${rules.conveyor})`);
-    }
-    if (rules.ball !== undefined) {
-      lines.push(`B: Place ball spawn (max ${rules.ball})`);
+      lines.push(`C: Conveyor mode (max ${rules.conveyor})`);
     }
     lines.push("Up Arrow: Rotate 90°");
     lines.push("Down Arrow: Rotate 180°");
@@ -915,7 +913,8 @@ function drawHUD() {
   }
 
   if (gameMode === MODE_EDITOR) {
-    lines.push("B: Block mode (click to place)");
+    lines.push("L: Reset level")
+    lines.push("B: Block mode (click to place/delete)");
     lines.push("R: Ramp mode");
     lines.push("A: Ball mode");
     lines.push("G: Goal mode");
