@@ -10,6 +10,18 @@ let engine;
 let world;
 let runner;
 
+// state variables
+const MODE_EDITOR = "editor";
+const MODE_LEVEL  = "level";
+const MODE_MENU = "menu";
+let gameMode = MODE_MENU;
+let currentLevel = null;        // holds the JSON of the level being played
+let currentLevelRules;
+let simulationRunning = false; 
+
+let contraptionCounts = {};
+
+
 // 2d array variables
 let theGrid;
 const GRID_COLS = 16;
@@ -24,13 +36,25 @@ let lastPlaced;
 let wallArray = [];
 let ballArray = [];
 let contrArray = [];
-let goalArray;
+let goalArray = [];
 
 let setting = "block";
 
+let sTramp;
+let sConveyor;
+let sFan;
+let sGoal;
+let anyConveyorTouching = false;
+
 // level data
 const LEVEL_1 = {
-  "walls": [
+  ballSpawns: [
+    { 
+      col: 1, 
+      row: 0 
+    }
+  ],
+  walls: [
     {
       "type": "ramp",
       "col": 1,
@@ -242,11 +266,23 @@ const LEVEL_1 = {
       "col": 1,
       "row": 7
     }
-  ]
+  ],
+  allowedContraptions: {
+    trampoline: 2,
+    fan: 0,
+    conveyor: 0
+  }
+  
 };
 
 const LEVEL_2 = {
-  "walls": [
+  ballSpawns: [
+    { 
+      col: 3, 
+      row: 5 
+    }
+  ],
+  walls: [
     {
       "type": "block",
       "col": 3,
@@ -518,20 +554,414 @@ const LEVEL_2 = {
       "angle": 0
     }
   ],
-  goals: [
+  "goals": [ 
+    {
+      "type": "goal",
+      "col": 2,
+      "row": 3
+    },
     {
       "type": "goal",
       "col": 2,
       "row": 2
     }
-  ]
+  ],
+  allowedContraptions: {
+    trampoline: 2,
+    fan: 0,
+    conveyor: 6
+  }
+
+}
+
+const LEVEL_3 = {
+    ballSpawns: [
+    { 
+      col: 2, 
+      row: 1 
+    }
+  ],
+    walls: [
+    {
+      "type": "block",
+      "col": 11,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 11,
+      "row": 6,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 11,
+      "row": 5,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 11,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 11,
+      "row": 3,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 11,
+      "row": 2,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 11,
+      "row": 8,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 11,
+      "row": 0,
+      "angle": 0
+    },
+    {
+      "type": "ramp",
+      "col": 7,
+      "row": 7,
+      "angleIndex": 1
+    },
+    {
+      "type": "block",
+      "col": 8,
+      "row": 8,
+      "angle": 0
+    },
+    {
+      "type": "ramp",
+      "col": 6,
+      "row": 6,
+      "angleIndex": 1
+    },
+    {
+      "type": "ramp",
+      "col": 5,
+      "row": 5,
+      "angleIndex": 1
+    },
+    {
+      "type": "ramp",
+      "col": 4,
+      "row": 4,
+      "angleIndex": 1
+    },
+    {
+      "type": "block",
+      "col": 7,
+      "row": 8,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 6,
+      "row": 8,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 6,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 5,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 5,
+      "row": 6,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 5,
+      "row": 8,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 4,
+      "row": 8,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 4,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 4,
+      "row": 6,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 4,
+      "row": 5,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 3,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 3,
+      "row": 5,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 3,
+      "row": 6,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 3,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 3,
+      "row": 8,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 2,
+      "row": 8,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 2,
+      "row": 7,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 2,
+      "row": 6,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 2,
+      "row": 5,
+      "angle": 0
+    },
+    {
+      "type": "block",
+      "col": 2,
+      "row": 4,
+      "angle": 0
+    },
+    {
+      "type": "ramp",
+      "col": 3,
+      "row": 3,
+      "angleIndex": 1
+    },
+    {
+      "type": "block",
+      "col": 2,
+      "row": 3,
+      "angle": 0
+    },
+    {
+      "type": "ramp",
+      "col": 2,
+      "row": 2,
+      "angleIndex": 1
+    },
+    {
+      "type": "block",
+      "col": 10,
+      "row": 8,
+      "angle": 0
+    }
+  ],
+  "goals": [
+    {
+      "type": "goal",
+      "col": 14,
+      "row": 3
+    },
+    {
+      "type": "goal",
+      "col": 13,
+      "row": 3
+    }
+  ],
+  allowedContraptions: {
+    trampoline: 1,
+    fan: 3,
+    conveyor: 2
+  }
 };
+
+function drawMenu() {
+  background(235);
+
+  // panel
+  const panelW = width * 0.6;
+  const panelH = height * 0.6;
+  const panelX = width / 2;
+  const panelY = height / 2;
+
+  push();
+  rectMode(CENTER);
+  noStroke();
+  fill(255);
+  rect(panelX, panelY, panelW, panelH, 20);
+  pop();
+
+  textAlign(CENTER, CENTER);
+
+  // title
+  fill(30);
+  textSize(44);
+  text("Rube Goldberg Machine", width / 2, panelY - panelH / 2 + 70);
+
+  // subtitle
+  textSize(18);
+  fill(100);
+  text("Select a Level", width / 2, panelY - panelH / 2 + 120);
+
+  // level list
+  textSize(22);
+  fill(40);
+
+  let startY = panelY - 20;
+  let spacing = 45;
+
+  for (let i = 0; i < LEVELS.length; i++) {
+    let y = startY + i * spacing;
+
+    // divider
+    stroke(220);
+    line(panelX - panelW / 4, y + spacing / 2 - 10,
+         panelX + panelW / 4, y + spacing / 2 - 10);
+    noStroke();
+
+    text(`${LEVELS[i].name}`, width / 2, y);
+  }
+
+  // footer hints
+  textSize(14);
+  fill(120);
+  text("Press number key to start", width / 2, panelY + panelH / 2 - 60);
+  text("Press D for Editor Mode", width / 2, panelY + panelH / 2 - 35);
+}
+
+function drawHUD() {
+  push();
+
+  // HUD box
+  rectMode(CORNER);
+  textAlign(LEFT, TOP);
+  textSize(14);
+  noStroke();
+
+  let x = 10;
+  let y = 10;
+  let padding = 10;
+  let lineH = 20;
+
+  // Collect lines to draw
+  let lines = [];
+  lines.push("Press M to return to menu");
+
+  if (gameMode === MODE_LEVEL && currentLevel && currentLevel.allowedContraptions) {
+    const rules = currentLevel.allowedContraptions;
+
+    if (rules.trampoline !== undefined) {
+      lines.push(`T: Place trampoline (max ${rules.trampoline})`);
+    }
+    if (rules.fan !== undefined) {
+      lines.push(`F: Place fan (max ${rules.fan})`);
+    }
+    if (rules.conveyor !== undefined) {
+      lines.push(`C: Place conveyor (max ${rules.conveyor})`);
+    }
+    if (rules.ball !== undefined) {
+      lines.push(`B: Place ball spawn (max ${rules.ball})`);
+    }
+  }
+
+  if (gameMode === MODE_EDITOR) {
+    lines.push("B: Block mode (click to place)");
+    lines.push("R: Ramp mode");
+    lines.push("A: Ball mode");
+    lines.push("G: Goal mode");
+    lines.push("T: Trampoline mode");
+    lines.push("C: Conveyor mode");
+    lines.push("F: Fan mode");
+  }
+
+  // background
+  let boxW = 260;
+  let boxH = padding * 2 + lines.length * lineH;
+
+  fill(0, 150);
+  rect(x, y, boxW, boxH, 10);
+
+  // text
+  fill(255);
+  for (let i = 0; i < lines.length; i++) {
+    text(lines[i], x + padding, y + padding + i * lineH);
+  }
+
+  pop();
+}
+
+const LEVELS = [
+  { id: 1, name: "Level 1", data: LEVEL_1 },
+  { id: 2, name: "Level 2", data: LEVEL_2 },
+  { id: 3, name: "Level 3", data: LEVEL_3 }
+];
+
+function preload() {
+  sTramp = loadSound("sounds/trampoline.mp3");
+  sConveyor = loadSound("sounds/conveyor.mp3");
+  sFan = loadSound("sounds/fan.mp3");
+  sGoal = loadSound("sounds/goal.mp3");
+}
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
   cellSize = Math.floor(
     Math.min(width / GRID_COLS, height / GRID_ROWS)
   );
+
+  sTramp.setVolume(0.5);
+  sConveyor.setVolume(0.25)
+  sFan.setVolume(0.25);
+  sGoal.setVolume(0.75);
 
   cols = GRID_COLS;
   rows = GRID_ROWS;
@@ -558,47 +988,45 @@ function setup() {
       handleCollision(pair);
     }
   });
-
-  loadLevel(LEVEL_1);
 }
 
-function exportLevel() {
-  const LEVEL = {
-    walls: [],
-    goals: []
-  };
+// function exportLevel() {
+//   const LEVEL = {
+//     walls: [],
+//     goals: []
+//   };
 
-  // save walls
-  for (let w of wallArray) {
-    if (w instanceof Block) {
-      LEVEL.walls.push({
-        type: "block",
-        col: w.col,
-        row: w.row,
-        angle: 0
-      });
-    }
-    else if (w instanceof Ramp) {
-      LEVEL.walls.push({
-        type: "ramp",
-        col: w.col,
-        row: w.row,
-        angleIndex: w.angleIndex
-      });
-    }
-  }
-  for (let g of goalArray) {
-    LEVEL.goals.push([
-      LEVEL.g = {
-        type: "goal",
-        col: g.col,
-        row: g.row
-      }
-    ]);
-  }
+//   // save walls
+//   for (let w of wallArray) {
+//     if (w instanceof Block) {
+//       LEVEL.walls.push({
+//         type: "block",
+//         col: w.col,
+//         row: w.row,
+//         angle: 0
+//       });
+//     }
+//     else if (w instanceof Ramp) {
+//       LEVEL.walls.push({
+//         type: "ramp",
+//         col: w.col,
+//         row: w.row,
+//         angleIndex: w.angleIndex
+//       });
+//     }
+//   }
 
-  console.log(JSON.stringify(LEVEL, null, 2));
-}
+//   // goals
+//   for (let g of goalArray) {
+//     LEVEL.goals.push({
+//         type: "goal",
+//         col: g.col,
+//         row: g.row
+//       });
+//   }
+
+//   console.log(JSON.stringify(LEVEL, null, 2));
+// }
 
 function clearWorld() {
   for (let b of Composite.allBodies(engine.world)) {
@@ -611,27 +1039,129 @@ function clearWorld() {
   goalArray = [];
 }
 
+function isEditorMode() {
+  return gameMode === MODE_EDITOR;
+}
+
+function isLevelMode() {
+  return gameMode === MODE_LEVEL;
+}
+
+function enterEditorMode() {
+  gameMode = MODE_EDITOR;
+  simulationRunning = false;
+
+  currentLevel = null;
+  currentLevelRules = null;
+  contraptionCounts = {};
+
+  clearWorld();
+}
+
+function enterLevelMode(level) {
+  gameMode = MODE_LEVEL;
+  currentLevel = level
+  simulationRunning = false;
+  loadLevel(level);
+}
+
 function loadLevel(level) {
   clearWorld();
 
-  for (let w of level.walls) {
-    if (w.type === "block") {
-      wallArray.push(new Block(w.col, w.row, 0));
-    }
-    else if (w.type === "ramp") {
-      wallArray.push(new Ramp(w.col, w.row, w.angleIndex));
-    }
+  currentLevel = level;           // store reference to level JSON
+  simulationRunning = false;
+
+  gameMode = MODE_LEVEL;          // level mode
+  currentLevelRules = level.allowedContraptions || {};
+  contraptionCounts = {};
+  for (let key in currentLevelRules) {
+    contraptionCounts[key] = 0;
   }
-  for (let g of level.goals) {
+
+
+  // Spawn walls
+  for (let w of level.walls || []) {
+    if (w.type === "block") wallArray.push(new Block(w.col, w.row, w.angle || 0));
+    else if (w.type === "ramp") wallArray.push(new Ramp(w.col, w.row, w.angleIndex));
+  }
+
+  // Spawn goals
+  for (let g of level.goals || []) {
     goalArray.push(new Goal(g.col, g.row));
   }
+
 }
 
+function spawnLevelBalls() {
+  if (!isLevelMode()) {
+    return;
+  }
+  if (!currentLevel || !currentLevel.ballSpawns) {
+    return;
+  }
+  for (let s of currentLevel.ballSpawns) {
+    ballArray.push(new Ball(s.col, s.row));
+  }
+
+  simulationRunning = true;
+}
+
+function canPlaceSetting(gameSetting) {
+  if (isEditorMode()) {
+    return true;
+  }
+
+  const key = settingToKey(gameSetting);
+  if (!key) {
+    return false;
+  }
+
+  const limit = currentLevelRules[key];
+  if (limit === undefined) {
+    return false;
+  }
+
+  const used = contraptionCounts[key] || 0;
+  return used < limit;
+}
+
+function canUseContraption(type) {
+  if (isEditorMode()) {
+    return true;
+  }
+
+  if (!currentLevelRules) {
+    return false;
+  }
+
+  const limit = currentLevelRules[type];
+  if (limit === undefined) {
+    return false;
+  }
+
+  const used = contraptionCounts[type] || 0;
+  return used < limit;
+}
+
+
 function draw() {
+  anyConveyorTouching = false;
+  if (gameMode === MODE_MENU) {
+    drawMenu();
+    return;
+  }
+  stroke(0);
+  strokeWeight(1);
+  fill(255);
+  rectMode(CENTER);
   background("white");
   deleteOutOfBounds();
   showGrid();
+  drawHUD();
 
+  if (isEditorMode()) {
+    simulationRunning = false;
+  }
   for (let someBlock of wallArray) {
     someBlock.display();
   }
@@ -642,6 +1172,7 @@ function draw() {
   for (let someContr of contrArray) {
     someContr.display();
     if (someContr instanceof Fan) {
+      someContr.updateSound();
       for (let ball of ballArray) {
         someContr.applyAirflow(ball);
       }
@@ -653,7 +1184,32 @@ function draw() {
   for (let someGoal of goalArray) {
     someGoal.display();
   }
+  if (sConveyor) {
+  sConveyor.setLoop(true);
+  if (anyConveyorTouching && !sConveyor.isPlaying()) {
+    sConveyor.play();
+  }
+  if (!anyConveyorTouching && sConveyor.isPlaying()) {
+    sConveyor.stop();
+  }
 }
+}
+
+function stopAllSounds() {
+  if (sFan && sFan.isPlaying()) {
+    sFan.stop();
+  }
+  if (sConveyor && sConveyor.isPlaying()) {
+    sConveyor.stop();
+  }
+  if (sTramp && sTramp.isPlaying()) {
+    sTramp.stop();
+  }
+  if (sGoal && sGoal.isPlaying()) {
+    sGoal.stop();
+  }
+}
+
 
 function rotateOffset(dx, dy, angle) {
   // for finding which cells a body owns
@@ -704,6 +1260,10 @@ function cellToPixel(col, row) {
 }
 
 function removeBall(ballBody) {
+  if (sGoal) {
+    sGoal.play();
+  }
+
   for (let i = ballArray.length - 1; i >= 0; i--) {
     if (ballArray[i].body === ballBody) {
       Composite.remove(engine.world, ballBody);
@@ -711,9 +1271,17 @@ function removeBall(ballBody) {
       break;
     }
   }
+
+  // stop fan sound if no balls left
+  if (ballArray.length === 0) {
+    if (sFan && sFan.isPlaying()) sFan.stop();
+  }
+
 }
 
 function mousePressed() {
+  userStartAudio();
+
   let col = Math.floor((mouseX - gridOffsetX) / cellSize);
   let row = Math.floor((mouseY - gridOffsetY) / cellSize);
 
@@ -728,38 +1296,55 @@ function mousePressed() {
 }
 
 function keyPressed() {
-  if (key === "b") {
+  if (gameMode === MODE_MENU) {
+    let index = parseInt(key, 10) - 1;
+    if (index >= 0 && index < LEVELS.length) {
+      enterLevelMode(LEVELS[index].data);
+    }
+    if (key === "d" || key === "D") {
+    enterEditorMode();
+    }
+    return;
+  }
+  else if (key === "m" || key === "M") {
+    gameMode = MODE_MENU;
+    stopAllSounds();
+  }
+  if (simulationRunning) {
+    return;
+  }
+  if (key === "b" || key === "B") {
     setting = "block";
   }
-  else if (key === "r") {
+  else if (key === "r" || key === "R") {
     setting = "ramp";
   }
   else if (key === "a") {
-    setting = "ball";
+    if (isLevelMode()) {
+      spawnLevelBalls();
+      return;
+    } else if (isEditorMode()) {
+      setting = "ball";
+      return;
+    }
   }
-  else if (key === "t") {
+  else if (key === "t" || key === "T") {
     setting = "trampoline";
   }
-  else if (key === "f") {
+  else if (key === "f" || key === "F") {
     setting = "fan";
   }
-  else if (key === "c") {
+  else if (key === "c" || key === "C") {
     setting = "conveyor";
   }
-  else if (key === "g") {
+  else if (key === "g" || key === "G") {
     setting = "goal"; 
   }
-  else if (key === "e") {
-    exportLevel();
-  }
-  else if (key === "l") {
+  // else if (key === "e") {
+  //   exportLevel();
+  // }
+  else if (key === "l" && gameMode === MODE_EDITOR) {
     clearWorld();
-  }
-  else if (key === "1") {
-    loadLevel(LEVEL_1);
-  }
-  else if (key === "2") {
-    loadLevel(LEVEL_2);
   }
   else if (keyCode === DOWN_ARROW) {
     if (lastPlaced && lastPlaced.rotate180) {
@@ -840,6 +1425,18 @@ function isCellOccupied(col, row) {
 }
 
 function toggleCell(col, row) {
+
+  if (simulationRunning) {
+    return;
+  }
+  if (isLevelMode() && (setting === "block" || setting === "ramp")) {
+    return;
+  }
+  if (isLevelMode() && setting === "ball") {
+    return;
+  }
+
+
   if (isCellOccupied(col, row)) { // delete if something already on that cell
     deleteCell(col, row);
     return;
@@ -860,21 +1457,28 @@ function toggleCell(col, row) {
     lastPlaced = theBall;
   }
   else if (setting === "trampoline") {
-    let theContr = new Trampoline(col, row, 0);
-    contrArray.push(theContr);
-    lastPlaced = theContr; 
+    trySpawnContraption(
+      Trampoline,
+      col,
+      row,
+      [0, Math.PI / 2]
+    );
   }
   else if (setting === "fan") {
-    let theContr = new Fan(col, row, 0);
-    deleteOverlaps(theContr.body);
-    contrArray.push(theContr);
-    lastPlaced = theContr;
+    trySpawnContraption(
+      Fan,
+      col,
+      row,
+      [0, Math.PI / 2, Math.PI, Math.PI * 3 / 2]
+    );
   }
   else if (setting === "conveyor") {
-    let theContr = new Conveyor(col, row, 0);
-    deleteOverlaps(theContr.body);
-    contrArray.push(theContr);
-    lastPlaced = theContr;
+    trySpawnContraption(
+      Conveyor,
+      col,
+      row,
+      [0, Math.PI / 2]
+    );
   }
   else if (setting === "goal") {
     let theGoal = new Goal(col, row);
@@ -883,22 +1487,28 @@ function toggleCell(col, row) {
 }
 
 function deleteCell(col, row) {
-  // delete walls
-  for (let i = wallArray.length - 1; i >= 0; i--) {
-    const W = wallArray[i];
-    const CELLS = getOccupiedCells(W.body);
 
-    for (let cell of CELLS) {
-      if (cell.col === col && cell.row === row) {
+  if (simulationRunning) {
+    return;
+  }
 
-        Composite.remove(engine.world, W.body);
-        wallArray.splice(i, 1);
-        return;
+  // wall deletion
+  if (isEditorMode()) {
+    for (let i = wallArray.length - 1; i >= 0; i--) {
+      const W = wallArray[i];
+      const CELLS = getOccupiedCells(W.body);
+
+      for (let cell of CELLS) {
+        if (cell.col === col && cell.row === row) {
+          Composite.remove(engine.world, W.body);
+          wallArray.splice(i, 1);
+          return;
+        }
       }
     }
   }
 
-  // delete contraptions
+  // contraption deletion
   for (let i = contrArray.length - 1; i >= 0; i--) {
     const C = contrArray[i];
 
@@ -906,30 +1516,33 @@ function deleteCell(col, row) {
       if (cell.col === col && cell.row === row) {
         Composite.remove(engine.world, C.body);
         contrArray.splice(i, 1);
+
+        if (isLevelMode()) {
+          const key = C.constructor.name.toLowerCase();
+          if (contraptionCounts[key] !== undefined) {
+            contraptionCounts[key]--;
+          }
+        }
+
         return;
       }
     }
   }
-  
-  for (let i = goalArray.length - 1; i >= 0; i--) {
-    const G = goalArray[i];
-    const CELLS = getOccupiedCells(G.body);
 
-    for (let cell of CELLS) {
-      if (cell.col === col && cell.row === row) {
+  // goal deletion
+  if (isEditorMode()) {
+    for (let i = goalArray.length - 1; i >= 0; i--) {
+      const G = goalArray[i];
+      const CELLS = getOccupiedCells(G.body);
 
-        Composite.remove(engine.world, W.body);
-        goalArray.splice(i, 1);
-        return;
+      for (let cell of CELLS) {
+        if (cell.col === col && cell.row === row) {
+          Composite.remove(engine.world, G.body);
+          goalArray.splice(i, 1);
+          return;
+        }
       }
     }
-  }
-}
-
-function deleteOverlaps(body) {
-  const CELLS = getOccupiedCells(body);
-  for (let cell of CELLS) {
-    deleteCell(cell.col, cell.row);
   }
 }
 
@@ -948,7 +1561,59 @@ function deleteOutOfBounds() {
       ballArray.splice(i, 1);
     }
   }
+
+  if (simulationRunning && ballArray.length === 0) {
+    simulationRunning = false;
+  }
 }
+
+function canPlaceContraption(contr) {
+  const CELLS = contr.getFootprint();
+
+  for (let cell of CELLS) {
+    if (!isInsideGrid(cell.col, cell.row)) {
+      return false;
+    }
+
+    if (isCellOccupied(cell.col, cell.row)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function trySpawnContraption(ContrClass, col, row, angles) {
+  // if can't place at angle 0, tries placing at angle pi/2 (passed in)
+
+  const type = ContrClass.name.toLowerCase();
+
+  // checks if any contraptions left
+  if (!canUseContraption(type)) {
+    return null;
+  }
+
+  for (let angle of angles) {
+    let temp = new ContrClass(col, row, angle);
+
+    // uses temporary bodies
+    if (canPlaceContraption(temp)) {
+      temp.spawn();
+      contrArray.push(temp);
+      lastPlaced = temp;
+
+      if (isLevelMode()) {
+        contraptionCounts[type]++;
+      }
+      
+      return temp;
+    }
+  }
+
+  return null;
+}
+
+
 
 function canRotate(body, allBodies) {
   // prevents rotation into other objects
@@ -1163,10 +1828,10 @@ class Ramp extends Wall {
 }
 
 class Goal {
-  constructor(col, row, width) {
+  constructor(col, row) {
     this.col = col;
     this.row = row;
-    this.width = width;
+    this.width = cellSize;
     this.color = "green"; 
     let options = { isStatic: true };
     const { x, y } = cellToPixel(col, row);
@@ -1191,6 +1856,10 @@ class Contraption {
     this.col = col;
     this.row = row;
     this.angle = angle;
+  }
+
+  spawn() {
+    Composite.add(engine.world, this.body);
   }
 
   getFootprint() {
@@ -1246,14 +1915,11 @@ class Trampoline extends Contraption {
     let options = { isStatic: true };
     const { x, y } = cellToPixel(col, row);
     this.body = Bodies.rectangle(x, y, this.width, this.height, options);
-
     Matter.Body.setAngle(this.body, this.angle);
-
-    Composite.add(engine.world, this.body);
   }
 
   rotate() {
-    super.rotate();
+    super.tryRotate();
     Matter.Body.setAngle(this.body, this.angle);
   }
 
@@ -1290,6 +1956,10 @@ class Trampoline extends Contraption {
       return;
     }
 
+    if (sTramp && !sTramp.isPlaying()) {
+      sTramp.play();
+    }
+
     // Collision physics
     let angle = this.body.angle; 
     let incoming = Math.abs(ball.body.velocity.y);
@@ -1304,6 +1974,10 @@ class Trampoline extends Contraption {
   }
 }
 
+function anyBallsExist() {
+  return ballArray.length > 0;
+}
+
 class Fan extends Contraption {
   constructor(col, row, angle) {
     super(col, row, angle);
@@ -1311,12 +1985,13 @@ class Fan extends Contraption {
     this.width = cellSize * 2 - 2 * cellSize / 5;
     this.height = cellSize / 5;
     this.strength = cellSize * 0.0005;
+    this.sound = sFan;
+    this.sound.setLoop(true);
     let options = { isStatic: true};
     const { x, y } = cellToPixel(col, row);
     this.body = Bodies.rectangle(x, y, this.width, this.height, options);
     Matter.Body.setAngle(this.body, this.angle);
 
-    Composite.add(engine.world, this.body);
   }
 
   getFootprint() {
@@ -1333,8 +2008,22 @@ class Fan extends Contraption {
 
 
   rotate() {
-    super.rotate();
+    super.tryRotate();
     Matter.Body.setAngle(this.body, this.angle);
+  }
+
+  updateSound() {
+    if (!this.sound) return;
+
+    if (anyBallsExist()) {
+      if (!this.sound.isPlaying()) {
+        this.sound.play();
+      }
+    } else {
+      if (this.sound.isPlaying()) {
+        this.sound.stop();
+      }
+    }
   }
 
   applyAirflow(ball) {
@@ -1454,8 +2143,6 @@ class Conveyor extends Contraption {
     this.body = Bodies.rectangle(x, y, this.width, this.height, options);
     this.body.label = "conveyor";
     Matter.Body.setAngle(this.body, this.angle);
-
-    Composite.add(engine.world, this.body);
   }
   
   getFootprint() {
@@ -1465,7 +2152,7 @@ class Conveyor extends Contraption {
     const OFF_2 = rotateOffset(-1, 0, this.body.angle);
 
     CELLS.push(
-      { col: this.col + OFF_2.dx, row: this.row + OFF_2.dy },
+      { col: this.col + OFF_1.dx, row: this.row + OFF_1.dy },
       { col: this.col + OFF_2.dx, row: this.row + OFF_2.dy }
     );
 
@@ -1474,7 +2161,7 @@ class Conveyor extends Contraption {
 
 
   rotate() {
-    super.rotate();
+    super.tryRotate();
     Matter.Body.setAngle(this.body, this.angle);
   }
 
@@ -1497,9 +2184,9 @@ class Conveyor extends Contraption {
     };
 
     for (let b of ballArray) {
-      const COLLISIONS = Matter.Query.collides(this.body, [b.body]);
-
-      if (COLLISIONS.length > 0) {
+      const hits = Matter.Query.collides(this.body, [b.body]);
+      if (hits.length > 0) {
+        anyConveyorTouching = true;
         Matter.Body.applyForce(b.body, b.body.position, FORCE_VECTOR);
       }
     }
