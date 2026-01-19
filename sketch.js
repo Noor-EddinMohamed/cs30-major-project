@@ -1988,7 +1988,6 @@ class Fan extends Contraption {
     return CELLS;
   }
 
-
   rotate() {
     super.tryRotate();
     Matter.Body.setAngle(this.body, this.angle);
