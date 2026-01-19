@@ -566,7 +566,7 @@ const LEVEL_2 = {
   allowedContraptions: {
     trampoline: 2,
     fan: 0,
-    conveyor: 6
+    conveyor: 3
   }
 
 };
@@ -892,7 +892,7 @@ function drawHUD() {
   // Collect lines to draw
   let lines = [];
   lines.push("M: Menu");
-  lines.push("O: Restart");
+  lines.push("S: Restart");
 
   if (gameMode === MODE_LEVEL && currentLevel && currentLevel.allowedContraptions) {
     const rules = currentLevel.allowedContraptions;
@@ -1277,6 +1277,7 @@ function mousePressed() {
 }
 
 function keyPressed() {
+  // menu keys
   if (gameMode === MODE_MENU) {
     let index = parseInt(key, 10) - 1;
     if (index >= 0 && index < LEVELS.length) {
@@ -1288,7 +1289,7 @@ function keyPressed() {
     return;
   }
   // reload
-  if ((key === "o" || key === "O") && isLevelMode() && currentLevel) {
+  if ((key === "s" || key === "S") && isLevelMode() && currentLevel) {
     stopAllSounds();
     loadLevel(currentLevel);
     return;
@@ -1297,6 +1298,7 @@ function keyPressed() {
     gameMode = MODE_MENU;
     stopAllSounds();
   }
+  // can't place when simulation running
   if (simulationRunning) {
     return;
   }
