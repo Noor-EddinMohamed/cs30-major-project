@@ -569,16 +569,16 @@ const LEVEL_2 = {
     conveyor: 6
   }
 
-}
+};
 
 const LEVEL_3 = {
-    ballSpawns: [
+  ballSpawns: [
     { 
       col: 2, 
       row: 1 
     }
   ],
-    walls: [
+  walls: [
     {
       "type": "block",
       "col": 11,
@@ -862,7 +862,7 @@ function drawMenu() {
     // divider
     stroke(220);
     line(panelX - panelW / 4, y + spacing / 2 - 10,
-         panelX + panelW / 4, y + spacing / 2 - 10);
+      panelX + panelW / 4, y + spacing / 2 - 10);
     noStroke();
 
     text(`${LEVELS[i].name}`, width / 2, y);
@@ -892,7 +892,7 @@ function drawHUD() {
   // Collect lines to draw
   let lines = [];
   lines.push("M: Menu");
-  lines.push("O: Restart")
+  lines.push("O: Restart");
 
   if (gameMode === MODE_LEVEL && currentLevel && currentLevel.allowedContraptions) {
     const rules = currentLevel.allowedContraptions;
@@ -913,7 +913,7 @@ function drawHUD() {
   }
 
   if (gameMode === MODE_EDITOR) {
-    lines.push("L: Reset level")
+    lines.push("L: Reset level");
     lines.push("B: Block mode (click to place/delete)");
     lines.push("R: Ramp mode");
     lines.push("A: Ball mode");
@@ -1059,7 +1059,7 @@ function enterEditorMode() {
 
 function enterLevelMode(level) {
   gameMode = MODE_LEVEL;
-  currentLevel = level
+  currentLevel = level;
   simulationRunning = false;
   loadLevel(level);
 }
@@ -1080,15 +1080,18 @@ function loadLevel(level) {
 
   // Spawn walls
   for (let w of level.walls || []) {
-    if (w.type === "block") wallArray.push(new Block(w.col, w.row, w.angle || 0));
-    else if (w.type === "ramp") wallArray.push(new Ramp(w.col, w.row, w.angleIndex));
+    if (w.type === "block") {
+      wallArray.push(new Block(w.col, w.row, w.angle || 0));
+    }
+    else if (w.type === "ramp") {
+      wallArray.push(new Ramp(w.col, w.row, w.angleIndex));
+    }
   }
 
   // Spawn goals
   for (let g of level.goals || []) {
     goalArray.push(new Goal(g.col, g.row));
   }
-
 }
 
 function spawnLevelBalls() {
@@ -1280,7 +1283,7 @@ function keyPressed() {
       enterLevelMode(LEVELS[index].data);
     }
     if (key === "d" || key === "D") {
-    enterEditorMode();
+      enterEditorMode();
     }
     return;
   }
